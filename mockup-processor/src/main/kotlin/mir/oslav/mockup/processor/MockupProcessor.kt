@@ -13,9 +13,8 @@ import mir.oslav.mockup.processor.data.MockupObjectMember
 import mir.oslav.mockup.processor.data.MockupType
 import mir.oslav.mockup.processor.data.ResolvedProperty
 import mir.oslav.mockup.processor.data.WrongTypeException
-import mir.oslav.mockup.processor.generation.AbstractMockupDataProviderGenerator
+import mir.oslav.mockup.processor.generation.MockupObjectExtensionGenerator
 import mir.oslav.mockup.processor.generation.MockupDataProviderGenerator
-import mir.oslav.mockup.processor.generation.MockupObjectGenerator
 import mir.oslav.mockup.processor.generation.SimpleValuesGenerator
 import mir.oslav.mockup.processor.generation.decapitalized
 import mir.oslav.mockup.processor.generation.isArray
@@ -158,17 +157,6 @@ class MockupProcessor constructor(
             }
         }
 
-        try {
-            AbstractMockupDataProviderGenerator(
-                outputStream = generateOutputFile(
-                    classes = mockupClassDeclarations,
-                    filename = "MockupDataProvider",
-                )
-            ).generateContent()
-        } catch (e: FileAlreadyExistsException) {
-            e.printStackTrace()
-            return emptyList()
-        }
 
         mockupTypesList.clear()
 
@@ -197,16 +185,24 @@ class MockupProcessor constructor(
             classesDeclarations = mockupClassDeclarations,
         )
 
-        MockupObjectGenerator(
+
+//        MockupObjectGenerator(
+//            outputStream = generateOutputFile(
+//                classes = mockupClassDeclarations,
+//                filename = "Mockup",
+//            )
+//        ).generateContent(providers = providers)
+
+
+        MockupObjectExtensionGenerator(
             outputStream = generateOutputFile(
                 classes = mockupClassDeclarations,
-                filename = "Mockup",
+                filename = "EXTENSIONS",
             )
-        ).generateContent(providers = providers)
+        ).generate(providers = providers)
 
         generatedProvidersCount = providers.size
         wasInvoked = true
-
 
         Debugger.close()
         return emptyList()

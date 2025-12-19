@@ -37,12 +37,11 @@ class MockupDataProviderGenerator constructor(
         val writtenImports = ArrayList<String>()
 
         //Header, package name and import of base class
-        //TODO change package to com.mockup since 2.0.0
         outputStream += MockupConstants.GENERATED_FILE_HEADER
         outputStream += "\n\n"
         outputStream += "package com.mockup.providers"
         outputStream += "\n\n"
-        outputStream += "import com.mockup.MockupDataProvider\n"
+        outputStream += "import com.mockup.core.MockupDataProvider\n"
 
         //Used types imports
         clazz.imports.sortedDescending().forEach { qualifiedName ->
@@ -55,7 +54,7 @@ class MockupDataProviderGenerator constructor(
         //Javadoc
         outputStream += "\n"
         outputStream += "/**\n"
-        outputStream += " * Holds the generated mockup data for $name class.\n"
+        outputStream += " * Holds the generated mockup data for ${name} class.\n"
         outputStream += " * Single item can be accessed by [${providerClassName}.single] \n"
         outputStream += " * Multiple items with [${providerClassName}.list].\n"
         outputStream += " * @since 1.0.0\n"
@@ -63,7 +62,8 @@ class MockupDataProviderGenerator constructor(
 
 
         //Class definition
-        outputStream += "public class $providerClassName internal constructor(): MockupDataProvider<$type>(\n"
+        outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
+        outputStream += "\tclazz = ${type}::class,\n"
         outputStream += "\tvalues = $generatedValuesContent\n"
         outputStream += ") {\n"
         outputStream += "}"

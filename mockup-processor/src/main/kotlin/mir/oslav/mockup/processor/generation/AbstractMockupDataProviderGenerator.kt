@@ -17,8 +17,14 @@ import java.io.OutputStream
  * @author Miroslav Hýbler <br>
  * created on 16.09.2023
  */
-class AbstractMockupDataProviderGenerator constructor(
-    private val outputStream: OutputStream
+@Deprecated(
+    message = "Will be removed in 2.0.0 and replaced by com.mockup.core.AbstractMockupDataProviderGenerator which won't be generated.",
+    replaceWith = ReplaceWith(
+        expression = "Mockup",
+        imports = ["com.mockup.core.AbstractMockupDataProviderGenerator"]
+    )
+)class AbstractMockupDataProviderGenerator constructor(
+    private val outputStream: OutputStream,
 ) {
 
 

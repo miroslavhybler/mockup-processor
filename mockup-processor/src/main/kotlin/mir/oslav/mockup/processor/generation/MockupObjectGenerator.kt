@@ -12,6 +12,13 @@ import java.util.Locale
  * @author Miroslav Hýbler <br>
  * created on 15.09.2023
  */
+@Deprecated(
+    message = "Will be removed in 2.0.0 and replaced by com.mockup.core.Mockup object which won't be generated.",
+    replaceWith = ReplaceWith(
+        expression = "Mockup",
+        imports = ["com.mockup.core.Mockup"]
+    )
+)
 open class MockupObjectGenerator constructor(
     protected val outputStream: OutputStream
 ) {
@@ -57,8 +64,8 @@ open class MockupObjectGenerator constructor(
             outputStream += "\t * Provides generated mockup data for ${provider.propertyName}\n"
             outputStream += "\t */\n"
             val valName = provider.propertyName.replaceFirstChar { char ->
-                    char.lowercase(locale = Locale.ROOT)
-                }
+                char.lowercase(locale = Locale.ROOT)
+            }
             val valDeclaration = "public val $valName"
             val valType = ": ${provider.providerClassName}"
             val constructorCall = "${provider.providerClassName}()"

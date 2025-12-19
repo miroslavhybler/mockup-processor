@@ -7,4 +7,5 @@ plugins {
     alias(libs.plugins.dokka) apply false
     alias(libs.plugins.android.test) apply false
     alias(libs.plugins.kotlin.compose.compiler) apply false
+    alias(libs.plugins.android.library) apply false
 }

@@ -16,6 +16,9 @@ data class MockupObjectMember constructor(
     val providerClassPackage: String
 ) {
 
+val qualifiedName: String
+    get() = "${providerClassPackage}.${providerClassName}"
+
 
 
 }

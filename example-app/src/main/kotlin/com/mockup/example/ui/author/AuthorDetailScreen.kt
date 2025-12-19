@@ -41,7 +41,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mockup.Mockup
+import com.mockup.article
+import com.mockup.core.Mockup
 import com.mockup.example.Article
 import com.mockup.example.AuthorRank
 import com.mockup.example.ExampleTheme
@@ -49,6 +50,7 @@ import com.mockup.example.Publisher
 import com.mockup.example.ui.DetailAppBar
 import com.mockup.example.ui.Photo
 import com.mockup.providers.PublisherMockupProvider
+import com.mockup.publisher
 import kotlinx.coroutines.launch
 
 /**
