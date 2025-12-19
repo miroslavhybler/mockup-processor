@@ -1,11 +1,11 @@
 import org.jetbrains.dokka.DokkaConfiguration.Visibility
 
 plugins {
-    kotlin("jvm")
-    id("kotlin-kapt")
-    id("org.jetbrains.dokka")
-    id("maven-publish")
-    id("com.google.devtools.ksp")
+    alias(libs.plugins.kotlin.jvm)
+    kotlin("kapt")
+    alias(libs.plugins.dokka)
+    `maven-publish`
+    alias(libs.plugins.ksp)
 }
 
 group = "com.github.miroslavhybler.mockup-processor"
@@ -25,12 +25,11 @@ java {
 }
 
 dependencies {
-    implementation("com.github.miroslavhybler:ksp-mockup-annotations:1.2.4")
-    implementation("com.google.devtools.ksp:symbol-processing-api:2.1.10-1.0.29")
-    implementation("androidx.annotation:annotation:1.9.1")
-    val autoServiceVersion = "1.1.1"
-    kapt("com.google.auto.service:auto-service:$autoServiceVersion")
-    compileOnly("com.google.auto.service:auto-service-annotations:$autoServiceVersion")
+    implementation(libs.ksp.mockup.annotations)
+    implementation(libs.ksp.api)
+    implementation(libs.annotation)
+    kapt(libs.auto.service)
+    compileOnly(libs.auto.service.annotations)
 }
 
 
