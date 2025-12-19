@@ -78,7 +78,7 @@ dependencies {
 
     /** Mockup plugin */
     //Always keep same version for processor and annotations
-    implementation(libs.ksp.mockup.annotations)
+    implementation(libs.mockup.annotations)
     implementation(project(":mockup-core"))
 
     //use kspDebug since mockup is meant to be only for compose preview in debug mode

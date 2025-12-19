@@ -1,0 +1,3 @@
+[submodule "mockup-core"]
+	path = mockup-core
+	url = https://github.com/miroslavhybler/ksp-mockup-core.git

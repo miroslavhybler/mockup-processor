@@ -10,5 +10,4 @@ package com.mockup.core
 public object Mockup {
 
 
-
 }
