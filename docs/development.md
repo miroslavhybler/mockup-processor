@@ -1,6 +1,6 @@
 # Development
 
-This project uses Git submodules to manage the `mockup-core` dependency. To properly clone the repository and all its submodules, use the following command:
+This project uses Git submodules to manage the `mockup-core` and `mockup-annotations` dependencies. To properly clone the repository and all its submodules, use the following command:
 
 ```bash
 git clone --recurse-submodules https://github.com/miroslavhybler/ksp-mockup-processor.git
