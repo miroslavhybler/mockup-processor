@@ -20,4 +20,5 @@ dependencyResolutionManagement {
 rootProject.name = "ksp-mockup"
 include(":mockup-processor",)
 include(":mockup-core",)
+include(":mockup-annotations",)
 include(":example-app")

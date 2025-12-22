@@ -26,6 +26,8 @@ class MockupObjectExtensionGenerator constructor(
         outputStream += "\n\n\n"
 
         outputStream += "import com.mockup.core.Mockup\n"
+        outputStream += "import com.mockup.core.MockupDataProvider\n"
+
         providers.forEach { providers ->
             outputStream += "import ${providers.qualifiedName}\n"
         }
@@ -33,9 +35,18 @@ class MockupObjectExtensionGenerator constructor(
         outputStream += "\n\n"
 
         providers.forEach { provider ->
-            outputStream+="private val ${provider.providerClassName.decapitalized()}: ${provider.providerClassName} get() = ${provider.providerClassName}()\n"
-
+            outputStream += "private val ${provider.providerClassName.decapitalized()}: ${provider.providerClassName} = ${provider.providerClassName}()\n"
         }
+
+        outputStream += "\n\n"
+
+
+        outputStream += "internal val providersList: List<MockupDataProvider<*>> = listOf("
+        providers.forEach { provider ->
+            outputStream += "\t${provider.providerClassName.decapitalized()},\n"
+        }
+        outputStream += ")"
+
         outputStream += "\n\n"
 
         providers.forEach { provider ->

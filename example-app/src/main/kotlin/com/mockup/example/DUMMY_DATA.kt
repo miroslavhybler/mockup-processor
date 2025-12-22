@@ -8,6 +8,8 @@ import androidx.annotation.IntRange
 import androidx.annotation.StringDef
 import com.mockup.annotations.IgnoreOnMockup
 import com.mockup.annotations.Mockup
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -142,10 +144,27 @@ enum class AuthorRank {
     GOLD, SILVER, BRONZE;
 }
 
-@Mockup(count = 1)
-class Reader constructor() {
+
+/**
+ * Example for Json serialization (requires `org.jetbrains.kotlin.plugin.serialization` plugin)
+ */
+@Serializable
+class Reader constructor(
+    @SerialName(value = "userName")
+    val userName: UserName,
+) {
+
+    val surname: String
+        get() = userName.surname
+    val birthname: String
+        get() = userName.birthname
+
+
+    @Serializable
     data class UserName constructor(
+        @SerialName(value = "surname")
         val surname: String,
+        @SerialName(value = "birthname")
         val birthname: String
     ) {
 

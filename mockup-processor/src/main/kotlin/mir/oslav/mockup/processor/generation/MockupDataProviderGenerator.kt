@@ -65,7 +65,7 @@ class MockupDataProviderGenerator constructor(
         outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
         outputStream += "\tclazz = ${type}::class,\n"
         outputStream += "\tvalues = $generatedValuesContent\n"
-        outputStream += ") {\n"
+        outputStream += "\t) {\n"
         outputStream += "}"
 
         return providerClassName
