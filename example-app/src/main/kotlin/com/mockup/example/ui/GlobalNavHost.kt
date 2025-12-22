@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.mockup.example.ui.article.ArticleDetailScreen
 import com.mockup.example.ui.author.AuthorDetailScreen
+import com.mockup.example.ui.author.followers.FollowersScreen
 
 
 /**
@@ -43,19 +44,38 @@ fun GlobalNavHost(navHostController: NavHostController) {
             )
         }
 
-        composable(route = "author/{id}",
+        composable(
+            route = "author/{id}",
             arguments = listOf(
                 navArgument(name = "id") {
                     type = NavType.IntType
                     defaultValue = -1
                     nullable = false
                 }
-            )) { backStackEntry ->
+            )
+        ) { backStackEntry ->
             val id = backStackEntry.arguments?.getInt("id") ?: -1
 
             AuthorDetailScreen(
                 navHostController = navHostController,
                 authorId = id
+            )
+        }
+
+        composable(
+            route = "author/{id}/followers",
+            arguments = listOf(
+                navArgument(name = "id") {
+                    type = NavType.IntType
+                    defaultValue = -1
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getInt("id") ?: -1
+            FollowersScreen(
+                authorId = id,
+                navHostController = navHostController,
             )
         }
     }

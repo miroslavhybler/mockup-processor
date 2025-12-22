@@ -236,7 +236,7 @@ class MockupProcessor constructor(
 
         mockupClasses.forEachIndexed { index, mockupClass ->
             val mockupDataGeneratedContent: String = generateMockupDataSequenceForProvider(
-                mockupClass = mockupClass
+                mockupClass = mockupClass,
             )
 
             val dataProviderClazzName = dataProvidersGenerator.generateContent(
@@ -321,7 +321,7 @@ class MockupProcessor constructor(
             outCode += generateItemApplyCall(mockupClass = mockupClass)
             outCode += ",\n"
         }
-        outCode += ")"
+        outCode += "\t)"
 
         return outCode
     }

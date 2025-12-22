@@ -4,6 +4,7 @@ package com.mockup.example.ui.author
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -139,25 +141,39 @@ private fun AuthorDetailScreenContent(
                                 )
                             }
 
-                            Text(
-                                text = author.fullName,
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(space = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(space = 4.dp)
+                                ) {
+                                    Text(
+                                        text = author.fullName,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
 
-                            Spacer(modifier = Modifier.height(height = 4.dp))
+                                    Text(
+                                        text = "${author.articlesCount} articles written 📝",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onBackground,
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        maxLines = 10
+                                    )
+                                }
 
-                            Text(
-                                text = "${author.articlesCount} articles written 📝",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(horizontal = 12.dp),
-                                maxLines = 10
-                            )
-
+                                Button(
+                                    onClick = {
+                                        navHostController.navigate(route = "author/${author.id}/followers")
+                                    }
+                                ) {
+                                    Text(text = "Followers")
+                                }
+                            }
                             Spacer(modifier = Modifier.height(height = 4.dp))
 
                             Text(
