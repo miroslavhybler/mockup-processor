@@ -31,7 +31,6 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mockup.article
 import com.mockup.core.Mockup
 import com.mockup.example.Article
 import com.mockup.example.ExampleTheme
@@ -47,7 +46,7 @@ import java.util.Locale
 @Composable
 fun ArticlesScreen(
     navHostController: NavHostController,
-    articles: List<Article> = Mockup.article.list,
+    articles: List<Article> = Mockup.getProvider<Article>().list,
 ) {
 
     Scaffold(
@@ -219,7 +218,7 @@ private fun ArticleScreenPreview() {
     ExampleTheme() {
         ArticlesScreen(
             navHostController = rememberNavController(),
-            articles = Mockup.article.list,
+            articles = Mockup.getProvider<Article>().list,
         )
     }
 }
