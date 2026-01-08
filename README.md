@@ -39,7 +39,7 @@ dependencies {
     val mockupVersion= "1.2.4"
     implementation("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
     ksp("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:kps-mockup-processor:$mockupVersion")
+    ksp("com.github.miroslavhybler:ksp-mockup-processor:$mockupVersion")
 }
 ```
 
