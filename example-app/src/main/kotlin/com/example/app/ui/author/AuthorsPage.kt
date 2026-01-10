@@ -1,4 +1,4 @@
-package com.mockup.example.ui.author
+package com.example.app.ui.author
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.core.Mockup
-import com.mockup.example.ExampleTheme
-import com.mockup.example.Publisher
-import com.mockup.example.ui.Photo
+import com.example.app.ExampleTheme
+import com.example.app.Publisher
+import com.example.app.ui.Photo
 import com.mockup.publisher
 
 
@@ -138,7 +138,7 @@ private fun AuthorsScreenPreview() {
     ExampleTheme() {
         AuthorsScreen(
             navHostController = rememberNavController(),
-            publishers = Mockup.publisher.list,
+            publishers = Mockup.getList(),
         )
     }
 }

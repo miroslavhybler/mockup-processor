@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.mockup.example.ui.author.followers
+package com.example.app.ui.author.followers
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.core.Mockup
-import com.mockup.example.R
-import com.mockup.example.Reader
-import com.mockup.example.ui.DetailAppBar
-import com.mockup.example.ui.Photo
-import com.mockup.example.ui.author.AuthorRank
+import com.example.app.R
+import com.example.app.Reader
+import com.example.app.ui.DetailAppBar
+import com.example.app.ui.Photo
+import com.example.app.ui.author.AuthorRank
 import kotlinx.coroutines.launch
 
 

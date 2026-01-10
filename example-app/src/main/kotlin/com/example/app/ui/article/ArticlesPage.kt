@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalLayoutApi::class)
 
-package com.mockup.example.ui.article
+package com.example.app.ui.article
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.core.Mockup
-import com.mockup.example.Article
-import com.mockup.example.ExampleTheme
-import com.mockup.example.ui.Photo
+import com.example.app.Article
+import com.example.app.ExampleTheme
+import com.example.app.ui.Photo
 import java.util.Locale
 
 
@@ -218,7 +218,7 @@ private fun ArticleScreenPreview() {
     ExampleTheme() {
         ArticlesScreen(
             navHostController = rememberNavController(),
-            articles = Mockup.getProvider<Article>().list,
+            articles = Mockup.getList(),
         )
     }
 }

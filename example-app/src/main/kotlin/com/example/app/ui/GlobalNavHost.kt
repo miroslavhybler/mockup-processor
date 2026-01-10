@@ -1,4 +1,4 @@
-package com.mockup.example.ui
+package com.example.app.ui
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
@@ -6,9 +6,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.mockup.example.ui.article.ArticleDetailScreen
-import com.mockup.example.ui.author.AuthorDetailScreen
-import com.mockup.example.ui.author.followers.FollowersScreen
+import com.example.app.ui.article.ArticleDetailScreen
+import com.example.app.ui.author.AuthorDetailScreen
+import com.example.app.ui.author.followers.FollowersScreen
 
 
 /**

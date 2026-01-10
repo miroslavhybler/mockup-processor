@@ -1,4 +1,4 @@
-package com.mockup.example.ui
+package com.example.app.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
-import com.mockup.example.ImagesForPreview
+import com.example.app.ImagesForPreview
 
 
 /**

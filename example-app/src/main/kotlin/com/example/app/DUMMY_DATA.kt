@@ -1,4 +1,4 @@
-package com.mockup.example
+package com.example.app
 
 import android.annotation.SuppressLint
 import androidx.annotation.ColorInt

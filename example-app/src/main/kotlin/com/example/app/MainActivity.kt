@@ -1,4 +1,4 @@
-package com.mockup.example
+package com.example.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,7 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.mockup.example.ui.GlobalNavHost
+import com.example.app.ui.GlobalNavHost
 
 
 /**

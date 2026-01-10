@@ -28,7 +28,8 @@ class MockupDataProviderGenerator constructor(
     fun generateContent(
         outputStream: OutputStream,
         clazz: MockupType.MockUpped,
-        generatedValuesContent: String
+        generatedValuesContent: String,
+        packageName: String,
     ): String {
         val name = clazz.name
         val declaration = clazz.type.declaration
@@ -39,7 +40,7 @@ class MockupDataProviderGenerator constructor(
         //Header, package name and import of base class
         outputStream += MockupConstants.GENERATED_FILE_HEADER
         outputStream += "\n\n"
-        outputStream += "package com.mockup.providers"
+        outputStream += "package ${packageName}"
         outputStream += "\n\n"
         outputStream += "import com.mockup.core.MockupDataProvider\n"
 

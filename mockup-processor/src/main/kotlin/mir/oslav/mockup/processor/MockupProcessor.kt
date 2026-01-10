@@ -198,6 +198,7 @@ class MockupProcessor constructor(
             outputStream = generateOutputFile(
                 classes = mockupClassDeclarations,
                 filename = "EXTENSIONS",
+                packageName = "com.mockup",
             )
         ).generate(providers = providers)
 
@@ -238,19 +239,21 @@ class MockupProcessor constructor(
             val mockupDataGeneratedContent: String = generateMockupDataSequenceForProvider(
                 mockupClass = mockupClass,
             )
+            val packageName= mockupClass.declaration.packageName.asString()
 
             val dataProviderClazzName = dataProvidersGenerator.generateContent(
                 outputStream = generateOutputFile(
                     classes = classesDeclarations,
                     filename = "${mockupClass.name}MockupProvider",
-                    packageName = "com.mockup.providers"
+                    packageName = packageName,
                 ),
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
+                packageName=packageName,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,
-                providerClassPackage = "com.mockup.providers",
+                providerClassPackage = packageName,
                 propertyName = mockupClass.name,
             )
             outputNamesList.add(element = member)
@@ -281,7 +284,7 @@ class MockupProcessor constructor(
     private fun generateOutputFile(
         classes: List<KSClassDeclaration>,
         filename: String,
-        packageName: String = "com.mockup",
+        packageName: String,
         isAggregating: Boolean = true,
     ): OutputStream {
         return environment.codeGenerator.createNewFile(

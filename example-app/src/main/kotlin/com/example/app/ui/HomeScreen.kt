@@ -1,4 +1,4 @@
-package com.mockup.example.ui
+package com.example.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +19,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mockup.example.R
-import com.mockup.example.ui.article.ArticlesScreen
-import com.mockup.example.ui.author.AuthorsScreen
+import com.example.app.R
+import com.example.app.ui.article.ArticlesScreen
+import com.example.app.ui.author.AuthorsScreen
 
 
 /**

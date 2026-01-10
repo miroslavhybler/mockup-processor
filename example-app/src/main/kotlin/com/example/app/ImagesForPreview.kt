@@ -1,4 +1,4 @@
-package com.mockup.example
+package com.example.app
 
 
 /**

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 
-package com.mockup.example.ui.article
+package com.example.app.ui.article
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,10 +42,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.article
 import com.mockup.core.Mockup
-import com.mockup.example.Article
-import com.mockup.example.ExampleTheme
-import com.mockup.example.ui.DetailAppBar
-import com.mockup.example.ui.Photo
+import com.example.app.Article
+import com.example.app.ExampleTheme
+import com.example.app.ui.DetailAppBar
+import com.example.app.ui.Photo
 import com.mockup.publisher
 import kotlinx.coroutines.launch
 
@@ -236,7 +236,7 @@ private fun ArticleDetailScreenContent(
 private fun ArticleDetailScreenPreview() {
     ExampleTheme() {
         ArticleDetailScreenContent(
-            article = Mockup.article.single,
+            article = Mockup.get(),
             navHostController = rememberNavController()
         )
     }
