@@ -43,19 +43,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-
-        freeCompilerArgs += listOf(
-            "-Xopt-in=androidx.compose.material.ExperimentalMaterialApi",
-            "-Xopt-in=androidx.compose.foundation.ExperimentalFoundationApi",
-            "-Xopt-in=androidx.compose.ui.ExperimentalComposeUiApi",
-            "-Xopt-in=androidx.compose.animation.ExperimentalAnimationApi",
-            "-Xopt-in=androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi",
-            "-Xopt-in=kotlinx.serialization.ExperimentalSerializationApi",
-            "-Xopt-in=com.google.accompanist.navigation.material.ExperimentalMaterialNavigationApi"
-        )
-    }
     kotlin {
         jvmToolchain(jdkVersion = 11)
     }
@@ -79,8 +66,8 @@ dependencies {
 
     /** Mockup plugin */
     //Always keep same version for mockup dependencies
-    implementation(libs.mockup.annotations)
-    implementation(project(":mockup-core"))
+    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha01")
+    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha01")
 
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
     ksp(project(":mockup-processor"))

@@ -64,13 +64,13 @@ Build your project and access generated data through generated Mockup object.
 
 ```kotlin
 //accessing same single user instance
-val user = Mockup.user.single
-
+val user: User = Mockup.get()
+val user2: User? = Mockup.getOrNull()
 //Getting list of items
-val usersList = Mockup.user.list
+val usersList: List<User> = Mockup.getList()
 
 //Getting random user instance from the list
-val userRandom = Mockup.user.random
+val userRandom: User = Mockup.getRandom()
 ```
 
 Since version 1.1.8 is it also possible to use as PreviewParameterProvider

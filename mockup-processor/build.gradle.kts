@@ -25,7 +25,7 @@ java {
 }
 
 dependencies {
-    implementation(libs.mockup.annotations)
+    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha01")
     implementation(libs.ksp.api)
     implementation(libs.annotation)
     kapt(libs.auto.service)

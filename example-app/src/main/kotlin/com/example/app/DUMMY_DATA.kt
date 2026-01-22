@@ -62,7 +62,8 @@ data class Article constructor(
         )
     }
 
-    val createdAtFormatted: String = dateFormatter.format(dateParser.parse(createdAt)!!)
+
+    val createdAtFormatted: String by lazy {  dateFormatter.format(dateParser.parse(createdAt)!!) }
 
 
     @IntDef(

@@ -14,11 +14,12 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
+        mavenLocal()
     }
 }
 
 rootProject.name = "ksp-mockup"
-include(":mockup-processor",)
-include(":mockup-core",)
-include(":mockup-annotations",)
+include(":mockup-processor")
+includeBuild("mockup-core")
+includeBuild("mockup-annotations")
 include(":example-app")
