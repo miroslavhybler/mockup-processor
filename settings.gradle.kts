@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "ksp-mockup"
 include(":mockup-processor")
-includeBuild("mockup-core")
-includeBuild("mockup-annotations")
-include(":example-app")
+if (System.getenv("JITPACK") != "true") {
+    includeBuild("mockup-core")
+    include(":example-app")
+}
