@@ -1,8 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":example-data")
-
-
 pluginManagement {
     repositories {
         google()
@@ -26,4 +23,6 @@ include(":mockup-processor")
 if (System.getenv("JITPACK") != "true") {
     includeBuild("mockup-core")
     include(":example-app")
+    include(":example-data")
+
 }
