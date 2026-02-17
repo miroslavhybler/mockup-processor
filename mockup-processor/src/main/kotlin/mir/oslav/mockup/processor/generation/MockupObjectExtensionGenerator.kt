@@ -10,7 +10,8 @@ import java.io.OutputStream
  * @since 2.0.0
  */
 class MockupObjectExtensionGenerator constructor(
-    private val outputStream: OutputStream
+    private val outputStream: OutputStream,
+    private val targetPackageName: String,
 ) {
 
     /**
@@ -20,9 +21,9 @@ class MockupObjectExtensionGenerator constructor(
      * @since 2.0.0
      */
     fun generate(
-        providers: List<MockupObjectMember>
+        providers: List<MockupObjectMember>,
     ) {
-        outputStream += "package com.mockup"
+        outputStream += "package $targetPackageName"
         outputStream += "\n\n\n"
 
         outputStream += "import com.mockup.core.Mockup\n"
@@ -50,6 +51,7 @@ class MockupObjectExtensionGenerator constructor(
         outputStream += "\n\n"
 
         providers.forEach { provider ->
+            outputStream += "@Deprecated(message = \"Generated extensions will be removed in v2.x.x) using Mockup.get() as replacement.\", replaceWith = ReplaceWith(\"Mockup.get<${provider.providerClassName}>()\"))\n"
             outputStream += "public val Mockup.${provider.propertyName.decapitalized()}: ${provider.providerClassName}\n"
             outputStream += "\tget() = ${provider.providerClassName.decapitalized()}\n"
             outputStream += "\n\n"

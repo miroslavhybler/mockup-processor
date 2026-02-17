@@ -1,4 +1,4 @@
-package com.example.app
+package com.mockup.exampledata
 
 import android.annotation.SuppressLint
 import androidx.annotation.ColorInt
@@ -12,6 +12,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Locale
+
 
 /**
  * @param rating Example usage of FloatRange annotation
@@ -144,6 +145,7 @@ class Publisher constructor() {
 enum class AuthorRank {
     GOLD, SILVER, BRONZE;
 }
+
 
 
 /**

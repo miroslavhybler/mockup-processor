@@ -12,12 +12,11 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 36
         versionCode = 3
-        versionName = "1.2.2"
+        versionName = "2.0.0-alpha02"
 
-        setProperty("archivesBaseName", "KSPMockupExample-$versionName-build-$versionCode")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -54,23 +53,21 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
-
-    ksp {
-        //You can set custom dateTime format for the date generation
-        //https://www.joda.org/joda-time/key_format.html
-        arg(k = "mockup-date-format", v = "yyyy-MM-dd HH:mm:ss Z")
-    }
 }
 
 dependencies {
 
-    /** Mockup plugin */
-    //Always keep same version for mockup dependencies
-    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha01")
-    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha01")
+    //Dummy data classes in another module for testing as mockup should be fine with multi-module project
+    implementation(project(":example-data"))
 
+    /** Mockup */
+    //Always keep same version for mockup dependencies
+    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha02")
+    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha02")
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
     ksp(project(":mockup-processor"))
+    //tooling preview required as providers implements PreviewParameterProvider
+    implementation(libs.compose.ui.tooling.preview)
 
     /** Compose and material */
     implementation(libs.core.ktx)
@@ -79,7 +76,6 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
-    implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.navigation.compose)
 

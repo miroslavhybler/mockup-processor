@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.core.Mockup
-import com.example.app.Article
+import com.mockup.exampledata.Article
 import com.example.app.ExampleTheme
 import com.example.app.ui.Photo
 import java.util.Locale

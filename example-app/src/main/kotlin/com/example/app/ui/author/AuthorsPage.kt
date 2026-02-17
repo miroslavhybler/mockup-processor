@@ -30,9 +30,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.mockup.core.Mockup
 import com.example.app.ExampleTheme
-import com.example.app.Publisher
+import com.mockup.exampledata.Publisher
 import com.example.app.ui.Photo
-import com.mockup.publisher
+import com.mockup.exampledata.publisher
 
 
 /**

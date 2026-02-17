@@ -34,7 +34,7 @@ class DateTimeRecognizer constructor() : BaseRecognizer() {
          * Default format used when mockup-date-format is not set
          * @since 1.1.0
          */
-        const val defaultFormat: String = "yyyy-MM-dd HH:mm:ss.ZZ"
+        const val defaultFormat: String = "yyyy-MM-dd HH:mm:ssZZ"
 
 
         /**

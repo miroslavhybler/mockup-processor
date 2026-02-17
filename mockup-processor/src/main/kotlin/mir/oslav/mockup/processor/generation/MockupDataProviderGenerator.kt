@@ -14,6 +14,7 @@ import java.io.OutputStream
  * @author Miroslav Hýbler <br>
  * created on 16.09.2023
  */
+//TODO use https://square.github.io/kotlinpoet/
 class MockupDataProviderGenerator constructor(
 
 ) {
@@ -31,7 +32,7 @@ class MockupDataProviderGenerator constructor(
         generatedValuesContent: String,
         packageName: String,
     ): String {
-        val name = clazz.name
+        val name = clazz.providerName
         val declaration = clazz.type.declaration
         val type = declaration.simpleName.getShortName()
         val providerClassName = "${name}MockupProvider"

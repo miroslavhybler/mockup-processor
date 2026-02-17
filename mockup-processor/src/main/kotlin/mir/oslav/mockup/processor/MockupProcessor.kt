@@ -194,13 +194,18 @@ class MockupProcessor constructor(
 //        ).generateContent(providers = providers)
 
 
-        MockupObjectExtensionGenerator(
-            outputStream = generateOutputFile(
-                classes = mockupClassDeclarations,
-                filename = "EXTENSIONS",
-                packageName = "com.mockup",
-            )
-        ).generate(providers = providers)
+        val targetPackage = mockupClassDeclarations.firstOrNull()?.packageName?.asString()
+
+        if (targetPackage != null && providers.isNotEmpty()) {
+            MockupObjectExtensionGenerator(
+                outputStream = generateOutputFile(
+                    classes = mockupClassDeclarations,
+                    filename = "EXTENSIONS",
+                    packageName = targetPackage,
+                ),
+                targetPackageName = targetPackage
+            ).generate(providers = providers)
+        }
 
         generatedProvidersCount = providers.size
         wasInvoked = true
@@ -239,17 +244,17 @@ class MockupProcessor constructor(
             val mockupDataGeneratedContent: String = generateMockupDataSequenceForProvider(
                 mockupClass = mockupClass,
             )
-            val packageName= mockupClass.declaration.packageName.asString()
+            val packageName = mockupClass.declaration.packageName.asString()
 
             val dataProviderClazzName = dataProvidersGenerator.generateContent(
                 outputStream = generateOutputFile(
                     classes = classesDeclarations,
-                    filename = "${mockupClass.name}MockupProvider",
+                    filename = "${mockupClass.providerName}MockupProvider",
                     packageName = packageName,
                 ),
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
-                packageName=packageName,
+                packageName = packageName,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,

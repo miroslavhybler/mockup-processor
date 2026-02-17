@@ -69,9 +69,11 @@ class MockupVisitor constructor(
 
         val annotationData = visitMockupAnnotation(classDeclaration = classDeclaration)
         val classType = classDeclaration.asType(typeArguments = emptyList())
+        val providerName = createProviderName(classDeclaration)
         val mockupClass = MockupType.MockUpped(
             name = annotationData.name.takeIf(predicate = String::isNotBlank)
                 ?: classDeclaration.simpleName.getShortName(),
+            providerName = providerName,
             properties = resolvedProperties,
             imports = imports,
             type = classType,
@@ -240,8 +242,10 @@ class MockupVisitor constructor(
             type.isEnumType -> {
                 //Since enums doesn't need @Mockup annotation it's required to include import manually
                 this.imports += listOf(type.declaration.qualifiedName!!.asString())
+                val providerName = createProviderName(declaration as KSClassDeclaration)
                 MockupType.Enum(
                     name = name,
+                    providerName = providerName,
                     type = type,
                     declaration = declaration,
                     enumEntries = getEnumConstants(enumType = type)
@@ -293,6 +297,7 @@ class MockupVisitor constructor(
             value = classDeclaration != null,
             lazyMessage = {
                 val typeName = type.declaration.simpleName.getShortName()
+                //tODO use qualified name so it's possible to click to navigate to unresolved class
                 "Unable to resolve type ${typeName}. This can have two causes:\n" +
                         "Cause 1: Class $typeName is not supported. List of supported types can be found here https://github.com/miroslavhybler/ksp-mockup/#supported-types\n" +
                         "Cause 2: Class $typeName is not annotated with @Mockup annotation.\n" +
@@ -306,9 +311,11 @@ class MockupVisitor constructor(
             classDeclaration = classDeclaration,
             outputList = outputPropertiesList,
         )
+        val providerName = createProviderName(classDeclaration)
 
         return MockupType.MockUpped(
             name = classDeclaration.simpleName.getShortName(),
+            providerName = providerName,
             declaration = classDeclaration,
             data = visitMockupAnnotation(classDeclaration = classDeclaration),
             type = type,
@@ -508,5 +515,17 @@ class MockupVisitor constructor(
             }
 
         return MockupType.Simple.Source.Text.Random
+    }
+
+
+    private fun createProviderName(
+        classDeclaration: KSClassDeclaration,
+    ): String {
+        val parent = classDeclaration.parentDeclaration as? KSClassDeclaration
+        return if (parent != null) {
+            parent.simpleName.getShortName() + classDeclaration.simpleName.getShortName()
+        } else {
+            classDeclaration.simpleName.getShortName()
+        }
     }
 }
