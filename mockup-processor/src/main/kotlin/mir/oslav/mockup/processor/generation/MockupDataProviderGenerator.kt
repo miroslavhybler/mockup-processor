@@ -33,8 +33,7 @@ class MockupDataProviderGenerator constructor(
         packageName: String,
     ): String {
         val name = clazz.providerName
-        val declaration = clazz.type.declaration
-        val type = declaration.simpleName.getShortName()
+        val type = clazz.qualifiedName
         val providerClassName = "${name}MockupProvider"
         val writtenImports = ArrayList<String>()
 

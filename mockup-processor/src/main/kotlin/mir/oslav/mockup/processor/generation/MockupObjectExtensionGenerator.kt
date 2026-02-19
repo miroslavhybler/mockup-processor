@@ -23,14 +23,20 @@ class MockupObjectExtensionGenerator constructor(
     fun generate(
         providers: List<MockupObjectMember>,
     ) {
+        val writtenImports = ArrayList<String>()
+
         outputStream += "package $targetPackageName"
         outputStream += "\n\n\n"
 
         outputStream += "import com.mockup.core.Mockup\n"
         outputStream += "import com.mockup.core.MockupDataProvider\n"
 
-        providers.forEach { providers ->
-            outputStream += "import ${providers.qualifiedName}\n"
+        providers.forEach { provider ->
+            val import = provider.parentQualifiedName ?: provider.qualifiedName
+            if (!writtenImports.contains(element = import)) {
+                outputStream += "import $import\n"
+                writtenImports.add(element = import)
+            }
         }
 
         outputStream += "\n\n"
@@ -52,7 +58,7 @@ class MockupObjectExtensionGenerator constructor(
 
         providers.forEach { provider ->
             outputStream += "@Deprecated(message = \"Generated extensions will be removed in v2.x.x) using Mockup.get() as replacement.\", replaceWith = ReplaceWith(\"Mockup.get<${provider.providerClassName}>()\"))\n"
-            outputStream += "public val Mockup.${provider.propertyName.decapitalized()}: ${provider.providerClassName}\n"
+            outputStream += "public val Mockup.${provider.providerClassName.decapitalized()}: ${provider.providerClassName}\n"
             outputStream += "\tget() = ${provider.providerClassName.decapitalized()}\n"
             outputStream += "\n\n"
         }

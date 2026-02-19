@@ -45,8 +45,8 @@ import com.mockup.exampledata.Article
 import com.example.app.ExampleTheme
 import com.example.app.ui.DetailAppBar
 import com.example.app.ui.Photo
-import com.mockup.exampledata.article
-import com.mockup.exampledata.publisher
+import com.mockup.exampledata.articleMockupProvider
+import com.mockup.exampledata.publisherMockupProvider
 import kotlinx.coroutines.launch
 
 
@@ -61,7 +61,7 @@ fun ArticleDetailScreen(
 ) {
 
     val article = remember {
-        Mockup.article.list.find { article -> article.id == articleId }!!
+        Mockup.articleMockupProvider.list.find { article -> article.id == articleId }!!
     }
 
     ArticleDetailScreenContent(
@@ -157,7 +157,7 @@ private fun ArticleDetailScreenContent(
                                 //As described in the readme.md data are not aggregated, can't use
                                 //Author id from article because he is not in publisher list probably
                                 navHostController.navigate(
-                                    route = "author/${Mockup.publisher.list.random().id}"
+                                    route = "author/${Mockup.publisherMockupProvider.list.random().id}"
                                 )
                             }
                         )

@@ -32,7 +32,7 @@ import com.mockup.core.Mockup
 import com.example.app.ExampleTheme
 import com.mockup.exampledata.Publisher
 import com.example.app.ui.Photo
-import com.mockup.exampledata.publisher
+import com.mockup.exampledata.publisherMockupProvider
 
 
 /**
@@ -44,7 +44,7 @@ import com.mockup.exampledata.publisher
 //Mockup data can be used like that too, but it's not purpose
 fun AuthorsScreen(
     navHostController: NavHostController,
-    publishers: List<Publisher> = Mockup.publisher.list,
+    publishers: List<Publisher> = Mockup.publisherMockupProvider.list,
 ) {
 
     Scaffold(

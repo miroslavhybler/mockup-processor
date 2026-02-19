@@ -51,8 +51,9 @@ import com.mockup.exampledata.Publisher
 import com.example.app.ui.DetailAppBar
 import com.example.app.ui.Photo
 import com.mockup.exampledata.PublisherMockupProvider
-import com.mockup.exampledata.article
-import com.mockup.exampledata.publisher
+import com.mockup.exampledata.articleMockupProvider
+import com.mockup.exampledata.publisherMockupProvider
+
 import kotlinx.coroutines.launch
 
 /**
@@ -66,9 +67,9 @@ fun AuthorDetailScreen(
 ) {
 
     AuthorDetailScreenContent(
-        author = remember { Mockup.publisher.list.find { it.id == authorId }!! },
+        author = remember { Mockup.publisherMockupProvider.list.find { it.id == authorId }!! },
         navHostController = navHostController,
-        articles = remember { Mockup.article.list.take(n = 5) }
+        articles = remember { Mockup.articleMockupProvider.list.take(n = 5) }
     )
 
 }

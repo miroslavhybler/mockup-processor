@@ -167,8 +167,7 @@ class MockupProcessor constructor(
         )
 
         mockupClassDeclarations.forEach { classDeclaration ->
-            classDeclaration.qualifiedName?.asString()
-                ?.let(block = importsList::add)
+            importsList.add(getRootParent(classDeclaration).qualifiedName!!.asString())
         }
 
         visitor.imports = importsList
@@ -184,15 +183,6 @@ class MockupProcessor constructor(
             mockupClasses = mockupTypesList.filterIsInstance<MockupType.MockUpped>(),
             classesDeclarations = mockupClassDeclarations,
         )
-
-
-//        MockupObjectGenerator(
-//            outputStream = generateOutputFile(
-//                classes = mockupClassDeclarations,
-//                filename = "Mockup",
-//            )
-//        ).generateContent(providers = providers)
-
 
         val targetPackage = mockupClassDeclarations.firstOrNull()?.packageName?.asString()
 
@@ -224,7 +214,7 @@ class MockupProcessor constructor(
      */
     private fun generateMockupDataProviders(
         classesDeclarations: List<KSClassDeclaration>,
-        mockupClasses: List<MockupType.MockUpped>
+        mockupClasses: List<MockupType.MockUpped>,
     ): ArrayList<MockupObjectMember> {
 
         val outputNamesList = ArrayList<MockupObjectMember>()
@@ -259,7 +249,7 @@ class MockupProcessor constructor(
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,
                 providerClassPackage = packageName,
-                propertyName = mockupClass.name,
+                parentQualifiedName = mockupClass.parentDeclarations.firstOrNull()?.qualifiedName?.asString()
             )
             outputNamesList.add(element = member)
         }
@@ -521,8 +511,7 @@ class MockupProcessor constructor(
     private fun generateItemPrimaryConstructorCall(
         mockupClass: MockupType.MockUpped,
     ): String {
-        val declaration = mockupClass.type.declaration
-        val type = declaration.simpleName.getShortName()
+        val type = mockupClass.qualifiedName
 
         //List of class properties declared in primary constructor
         val constructorProperties = mockupClass.properties
@@ -590,5 +579,15 @@ class MockupProcessor constructor(
         }
         outputText += "\t\t}"
         return outputText
+    }
+
+    private fun getRootParent(
+        classDeclaration: KSClassDeclaration,
+    ): KSClassDeclaration {
+        var parent = classDeclaration.parentDeclaration as? KSClassDeclaration
+        while (parent?.parentDeclaration != null) {
+            parent = parent.parentDeclaration as? KSClassDeclaration
+        }
+        return parent ?: classDeclaration
     }
 }

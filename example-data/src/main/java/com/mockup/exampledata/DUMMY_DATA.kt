@@ -39,7 +39,13 @@ data class Article constructor(
     @IntRange(from = 0, to = 5_000)
     val readersCount: Int,
     val minutesReading: Short,
+    val item: Item,
 ) {
+
+
+    //Example of nested class for generation
+    @Mockup
+    class  Item constructor(val id: Int)
 
     @IgnoreOnMockup
     val topReader: Reader? = null
@@ -155,7 +161,14 @@ enum class AuthorRank {
 class Reader constructor(
     @SerialName(value = "userName")
     val userName: UserName,
-) {
+    val item: Item,
+    ) {
+
+    //Example of nested class for generation
+    @Mockup
+    @Serializable
+    class  Item constructor(val id: Int)
+
 
     val surname: String
         get() = userName.surname

@@ -138,6 +138,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         override val providerName: String,
         override val type: KSType,
         override val declaration: KSClassDeclaration,
+        val parentDeclarations: List<KSDeclaration>,
         val data: MockupAnnotationData,
         val imports: List<String>,
         val properties: List<ResolvedProperty>
@@ -146,7 +147,16 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         providerName = providerName,
         type = type,
         declaration = declaration
-    )
+    ) {
+        val qualifiedName: String
+            get() {
+                var name = declaration.simpleName.getShortName()
+                parentDeclarations.forEach { parent ->
+                    name = "${parent.simpleName.getShortName()}.$name"
+                }
+                return name
+            }
+    }
 
     /**
      * Represents enum type.
@@ -181,7 +191,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         name = name,
         providerName = name,
         type = type,
-        declaration = declaration
+        declaration = declaration,
     ) {
 
     }
