@@ -37,9 +37,9 @@ plugins {
 dependencies {
     //Always use the same version for annotations and processor
     val mockupVersion= "1.2.4"
-    implementation("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:ksp-mockup-processor:$mockupVersion")
+    implementation("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    ksp("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    ksp("com.github.miroslavhybler:mockup-processor:$mockupVersion")
 }
 ```
 
