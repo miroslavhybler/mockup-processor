@@ -1,4 +1,6 @@
 @file:Suppress("UnstableApiUsage")
+//include(":example-local")
+
 
 pluginManagement {
     repositories {
