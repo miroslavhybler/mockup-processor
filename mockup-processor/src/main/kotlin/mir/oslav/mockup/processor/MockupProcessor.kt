@@ -379,7 +379,10 @@ class MockupProcessor constructor(
             //TODO prevent infinite collection generation
             is MockupType.Collection -> {
                 outputCode += when {
-                    type.type.isList -> "listOf(\n"
+                    type.type.isList -> {
+                        "listOf(\n"
+                    }
+
                     type.type.isArray -> "arrayOf(\n"
                     else -> throw WrongTypeException(
                         expectedType = "Generic collection type",
@@ -387,6 +390,7 @@ class MockupProcessor constructor(
                     )
                 }
                 var propertyValueCode = ""
+
                 when (val elementType = type.elementType) {
                     is MockupType.Simple -> {
                         for (i in 0 until Random.nextInt(from = 1, until = 6)) {
@@ -477,7 +481,7 @@ class MockupProcessor constructor(
         val memberClassPackageName = declaration.packageName.asString()
 
         val memberClass = mockupClasses.find { mockupClass ->
-            mockupClass.name == memberClassName
+            mockupClass.declaration == declaration
                     && mockupClass.packageName == memberClassPackageName
         } ?: throw NullPointerException(
             "Cannot generate mockup data for class ${memberClassName}. This can have two causes:\n" +

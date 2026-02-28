@@ -1,5 +1,4 @@
 @file:Suppress("UnstableApiUsage")
-//include(":example-local")
 
 
 pluginManagement {
@@ -16,7 +15,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
-        mavenLocal()
+  //      mavenLocal()
     }
 }
 
@@ -25,6 +24,6 @@ include(":mockup-processor")
 if (System.getenv("JITPACK") != "true") {
     includeBuild("mockup-core")
     include(":example-app")
+   // include(":example-local")
     include(":example-data")
-
 }

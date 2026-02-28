@@ -35,7 +35,6 @@ class MockupDataProviderGenerator constructor(
         val name = clazz.providerName
         val type = clazz.qualifiedName
         val providerClassName = "${name}MockupProvider"
-        val writtenImports = ArrayList<String>()
 
         //Header, package name and import of base class
         outputStream += MockupConstants.GENERATED_FILE_HEADER
@@ -45,11 +44,8 @@ class MockupDataProviderGenerator constructor(
         outputStream += "import com.mockup.core.MockupDataProvider\n"
 
         //Used types imports
-        clazz.imports.sortedDescending().forEach { qualifiedName ->
-            if (!writtenImports.contains(element = qualifiedName)) {
-                outputStream += "import $qualifiedName\n"
-                writtenImports.add(qualifiedName)
-            }
+        clazz.imports.sortedDescending().distinct().forEach { qualifiedName ->
+            outputStream += "import $qualifiedName\n"
         }
 
         //Javadoc

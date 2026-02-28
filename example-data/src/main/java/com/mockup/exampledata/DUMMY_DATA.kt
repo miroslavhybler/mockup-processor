@@ -42,10 +42,12 @@ data class Article constructor(
     val item: Item,
 ) {
 
-
     //Example of nested class for generation
     @Mockup
-    class  Item constructor(val id: Int)
+    class Item constructor(
+        val id: Int,
+        val name: String,
+    )
 
     @IgnoreOnMockup
     val topReader: Reader? = null
@@ -70,7 +72,7 @@ data class Article constructor(
     }
 
 
-    val createdAtFormatted: String by lazy {  dateFormatter.format(dateParser.parse(createdAt)!!) }
+    val createdAtFormatted: String by lazy { dateFormatter.format(dateParser.parse(createdAt)!!) }
 
 
     @IntDef(
@@ -153,7 +155,6 @@ enum class AuthorRank {
 }
 
 
-
 /**
  * Example for Json serialization (requires `org.jetbrains.kotlin.plugin.serialization` plugin)
  */
@@ -162,12 +163,12 @@ class Reader constructor(
     @SerialName(value = "userName")
     val userName: UserName,
     val item: Item,
-    ) {
+) {
 
     //Example of nested class for generation
     @Mockup
     @Serializable
-    class  Item constructor(val id: Int)
+    class Item constructor(val id: Int, val name: String)
 
 
     val surname: String
