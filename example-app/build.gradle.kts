@@ -62,8 +62,8 @@ dependencies {
 
     /** Mockup */
     //Always keep same version for mockup dependencies
-    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha02")
-    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha02")
+    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha03")
+    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha03")
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
     ksp(project(":mockup-processor"))
     //tooling preview required as providers implements PreviewParameterProvider
