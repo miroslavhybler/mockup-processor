@@ -12,10 +12,10 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+       // mavenLocal()
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
-  //      mavenLocal()
     }
 }
 
@@ -24,6 +24,6 @@ include(":mockup-processor")
 if (System.getenv("JITPACK") != "true") {
     includeBuild("mockup-core")
     include(":example-app")
-   // include(":example-local")
+  //  include(":example-local")
     include(":example-data")
 }
