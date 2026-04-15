@@ -40,7 +40,7 @@ ksp {
 
 dependencies {
     //Always use the same version for annotations and processor
-    val mockupVersion= "2.0.0-alpha03"
+    val mockupVersion= "2.0.0-beta01"
     implementation("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
     ksp("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
     ksp("com.github.miroslavhybler:mockup-processor:$mockupVersion")
