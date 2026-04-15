@@ -42,6 +42,7 @@ class MockupDataProviderGenerator constructor(
         outputStream += "package ${packageName}"
         outputStream += "\n\n"
         outputStream += "import com.mockup.core.MockupDataProvider\n"
+        outputStream += "import com.mockup.GeneratedMockupRegistry\n"
 
         //Used types imports
         clazz.imports.sortedDescending().distinct().forEach { qualifiedName ->
@@ -61,7 +62,10 @@ class MockupDataProviderGenerator constructor(
         //Class definition
         outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
         outputStream += "\tclazz = ${type}::class,\n"
-        outputStream += "\tvalues = $generatedValuesContent\n"
+        outputStream += "\tvalues = run {\n"
+        outputStream += "\t\tGeneratedMockupRegistry.register()\n"
+        outputStream += "\t\t$generatedValuesContent\n"
+        outputStream += "\t}\n"
         outputStream += "\t) {\n"
         outputStream += "}"
 

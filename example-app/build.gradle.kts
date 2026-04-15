@@ -15,7 +15,7 @@ android {
         minSdk = 23
         targetSdk = 36
         versionCode = 3
-        versionName = "2.0.0-alpha03"
+        versionName = "2.0.0-beta01-DEV"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -47,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -63,9 +64,11 @@ dependencies {
     /** Mockup */
     //Always keep same version for mockup dependencies
     implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-alpha04")
-    implementation("com.github.miroslavhybler:mockup-core:2.0.0-alpha04")
+    implementation("com.github.miroslavhybler:mockup-core:2.0.0-beta01-DEV")
+
+
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
-    ksp(project(":mockup-processor"))
+    kspDebug(project(":mockup-processor"))
     //tooling preview required as providers implements PreviewParameterProvider
     implementation(libs.compose.ui.tooling.preview)
 

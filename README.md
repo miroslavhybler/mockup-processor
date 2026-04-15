@@ -71,6 +71,29 @@ val usersList: List<User> = Mockup.getList()
 
 //Getting random user instance from the list
 val userRandom: User = Mockup.getRandom()
+
+## Custom mockup data (JSON)
+You can register hand-crafted mockup data directly in code. Custom data are prepended before
+generated values and are ideal for previews or debug-only usage.
+
+### Auto-init registry (recommended)
+Implement `CustomMockupProvider<T>` and the processor will generate a registry automatically.
+The generated registry is invoked on every provider creation, so previews and runtime both receive
+the custom values without any manual calls.
+Providers must be `object`s or have a no-arg constructor.
+
+```kotlin
+object UserCustomProvider : CustomMockupProvider<User> {
+    override val clazz = User::class
+    override val values: List<User> = Mockup.fromJsonList(
+        json = """[{"id":1,"name":"Jane"}]"""
+    )
+}
+```
+
+```kotlin
+Mockup.add<User>(json = """{"id":1,"name":"Jane"}""")
+Mockup.addList<User>(json = """[{"id":1,"name":"Jane"}]""")
 ```
 
 Since version 1.1.8 is it also possible to use as PreviewParameterProvider
