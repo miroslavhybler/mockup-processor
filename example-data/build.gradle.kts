@@ -34,7 +34,7 @@ android {
     ksp {
         //You can set custom dateTime format for the date generation
         //https://www.joda.org/joda-time/key_format.html
-        arg(k = "mockup-date-format", v = "yyyy-MM-dd HH:mm:ss Z")
+        arg(k = "mockup.dateFormat", v = "yyyy-MM-dd HH:mm:ss Z")
     }
 }
 
@@ -50,8 +50,6 @@ dependencies {
     implementation("com.github.miroslavhybler:mockup-core:2.0.0-beta01-DEV")
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
     ksp(project(":mockup-processor"))
-    //tooling preview required as providers implements PreviewParameterProvider
-    implementation(libs.compose.ui.tooling.preview)
 
 
     implementation(libs.core.ktx)

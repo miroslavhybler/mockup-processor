@@ -6,6 +6,11 @@ plugins {
     alias(libs.plugins.kotlin.serialization.json)
 }
 
+ksp {
+    //Keep generated providers compatible with @PreviewParameter in this sample app
+    arg(k = "mockup.usePreviewParameterProviders", v = "true")
+}
+
 android {
     namespace = "com.example.app"
     compileSdk = 36
@@ -69,7 +74,7 @@ dependencies {
 
     //use kspDebug since mockup is meant to be only for compose preview in debug mode
     kspDebug(project(":mockup-processor"))
-    //tooling preview required as providers implements PreviewParameterProvider
+    //Needed because this sample opts into generated PreviewParameterProvider implementations
     implementation(libs.compose.ui.tooling.preview)
 
     /** Compose and material */

@@ -131,9 +131,16 @@ class MockupProcessor constructor(
         resolver: Resolver,
     ): List<KSAnnotated> {
         val dateFormat = environment.options["mockup-date-format"]
+            ?: environment.options["mockup.dateFormat"]
             ?: DateTimeRecognizer.defaultFormat
+        val usePreviewParameterProviders =
+            environment.options["mockup.usePreviewParameterProviders"]
+                ?.toBoolean() == true
 
-        inputOptions = InputOptions(defaultDateFormat = dateFormat)
+        inputOptions = InputOptions(
+            defaultDateFormat = dateFormat,
+            usePreviewParameterProviders = usePreviewParameterProviders,
+        )
 
         if (wasInvoked && generatedProvidersCount > 0) {
             // If processor was invoked previously return emptyList() immediately for unwanted
@@ -174,7 +181,9 @@ class MockupProcessor constructor(
         )
 
         mockupClassDeclarations.forEach { classDeclaration ->
-            importsList.add(getRootParent(classDeclaration).qualifiedName!!.asString())
+            importsList.add(
+                element = getRootParent(classDeclaration = classDeclaration).qualifiedName!!.asString()
+            )
         }
 
         visitor.imports = importsList
@@ -333,6 +342,7 @@ class MockupProcessor constructor(
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
                 packageName = packageName,
+                usePreviewParameterProviders = inputOptions?.usePreviewParameterProviders == true,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,

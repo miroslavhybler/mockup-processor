@@ -33,6 +33,10 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+ksp {
+    //Optional: generated providers also implement PreviewParameterProvider
+    arg("mockup.usePreviewParameterProviders", "true")
+}
 
 dependencies {
     //Always use the same version for annotations and processor
@@ -42,6 +46,12 @@ dependencies {
     ksp("com.github.miroslavhybler:mockup-processor:$mockupVersion")
 }
 ```
+
+`mockup.usePreviewParameterProviders` defaults to `false`.
+When it is `false`, generated providers are plain `MockupDataProvider`s and the generating module does not need
+`androidx.compose.ui:ui-tooling-preview`.
+When it is `true`, generated providers also implement `PreviewParameterProvider`, so that module must include the
+Compose preview dependency.
 
 ### Usage
 Annotate desired classes with @Mockup and that's it
@@ -71,6 +81,7 @@ val usersList: List<User> = Mockup.getList()
 
 //Getting random user instance from the list
 val userRandom: User = Mockup.getRandom()
+```
 
 ## Custom mockup data (JSON)
 You can register hand-crafted mockup data directly in code. Custom data are prepended before
@@ -96,7 +107,8 @@ Mockup.add<User>(json = """{"id":1,"name":"Jane"}""")
 Mockup.addList<User>(json = """[{"id":1,"name":"Jane"}]""")
 ```
 
-Since version 1.1.8 is it also possible to use as PreviewParameterProvider
+It is also possible to use generated providers as `PreviewParameterProvider` when
+`mockup.usePreviewParameterProviders=true`.
 
 ```kotlin
 //For class "User" the name would be UserMockupProvider by default

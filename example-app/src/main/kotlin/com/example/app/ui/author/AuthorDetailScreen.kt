@@ -304,13 +304,10 @@ private fun ArticleItem(
 
 @Composable
 @PreviewLightDark
-private fun AuthorDetailScreenPreview(
-    @PreviewParameter(provider = PublisherMockupProvider::class)
-    publisher: Publisher,
-) {
+private fun AuthorDetailScreenPreview() {
     ExampleTheme {
         AuthorDetailScreenContent(
-            author = publisher,
+            author = Mockup.getRandom(),
             navHostController = rememberNavController(),
             articles = Mockup.getList(),
         )

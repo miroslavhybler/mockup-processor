@@ -31,6 +31,7 @@ class MockupDataProviderGenerator constructor(
         clazz: MockupType.MockUpped,
         generatedValuesContent: String,
         packageName: String,
+        usePreviewParameterProviders: Boolean,
     ): String {
         val name = clazz.providerName
         val type = clazz.qualifiedName
@@ -43,6 +44,9 @@ class MockupDataProviderGenerator constructor(
         outputStream += "\n\n"
         outputStream += "import com.mockup.core.MockupDataProvider\n"
         outputStream += "import com.mockup.GeneratedMockupRegistry\n"
+        if (usePreviewParameterProviders) {
+            outputStream += "import androidx.compose.ui.tooling.preview.PreviewParameterProvider\n"
+        }
 
         //Used types imports
         clazz.imports.sortedDescending().distinct().forEach { qualifiedName ->
@@ -60,13 +64,23 @@ class MockupDataProviderGenerator constructor(
 
 
         //Class definition
+        val previewProviderSuffix = if (usePreviewParameterProviders) {
+            ", PreviewParameterProvider<${type}>"
+        } else {
+            ""
+        }
+
         outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
         outputStream += "\tclazz = ${type}::class,\n"
         outputStream += "\tvalues = run {\n"
         outputStream += "\t\tGeneratedMockupRegistry.register()\n"
         outputStream += "\t\t$generatedValuesContent\n"
         outputStream += "\t}\n"
-        outputStream += "\t) {\n"
+        outputStream += "\t)${previewProviderSuffix} {\n"
+        if (usePreviewParameterProviders) {
+            outputStream += "\toverride val count: Int\n"
+            outputStream += "\t\tget() = super<MockupDataProvider>.count\n"
+        }
         outputStream += "}"
 
         return providerClassName
