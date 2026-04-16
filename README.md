@@ -33,15 +33,25 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+ksp {
+    //Optional: generated providers also implement PreviewParameterProvider
+    arg("mockup.usePreviewParameterProviders", "true")
+}
 
 dependencies {
     //Always use the same version for annotations and processor
-    val mockupVersion= "1.2.0"
-    implementation("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:ksp-mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:kps-mockup-processor:$mockupVersion")
+    val mockupVersion= "2.0.0-beta01"
+    implementation("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    ksp("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    ksp("com.github.miroslavhybler:mockup-processor:$mockupVersion")
 }
 ```
+
+`mockup.usePreviewParameterProviders` defaults to `false`.
+When it is `false`, generated providers are plain `MockupDataProvider`s and the generating module does not need
+`androidx.compose.ui:ui-tooling-preview`.
+When it is `true`, generated providers also implement `PreviewParameterProvider`, so that module must include the
+Compose preview dependency.
 
 ### Usage
 Annotate desired classes with @Mockup and that's it
@@ -64,16 +74,41 @@ Build your project and access generated data through generated Mockup object.
 
 ```kotlin
 //accessing same single user instance
-val user = Mockup.user.single
-
+val user: User = Mockup.get()
+val user2: User? = Mockup.getOrNull()
 //Getting list of items
-val usersList = Mockup.user.list
+val usersList: List<User> = Mockup.getList()
 
 //Getting random user instance from the list
-val userRandom = Mockup.user.random
+val userRandom: User = Mockup.getRandom()
 ```
 
-Since version 1.1.8 is it also possible to use as PreviewParameterProvider
+## Custom mockup data (JSON)
+You can register hand-crafted mockup data directly in code. Custom data are prepended before
+generated values and are ideal for previews or debug-only usage.
+
+### Auto-init registry (recommended)
+Implement `CustomMockupProvider<T>` and the processor will generate a registry automatically.
+The generated registry is invoked on every provider creation, so previews and runtime both receive
+the custom values without any manual calls.
+Providers must be `object`s or have a no-arg constructor.
+
+```kotlin
+object UserCustomProvider : CustomMockupProvider<User> {
+    override val clazz = User::class
+    override val values: List<User> = Mockup.fromJsonList(
+        json = """[{"id":1,"name":"Jane"}]"""
+    )
+}
+```
+
+```kotlin
+Mockup.add<User>(json = """{"id":1,"name":"Jane"}""")
+Mockup.addList<User>(json = """[{"id":1,"name":"Jane"}]""")
+```
+
+It is also possible to use generated providers as `PreviewParameterProvider` when
+`mockup.usePreviewParameterProviders=true`.
 
 ```kotlin
 //For class "User" the name would be UserMockupProvider by default

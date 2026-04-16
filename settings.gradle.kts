@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+
 pluginManagement {
     repositories {
         google()
@@ -11,6 +12,7 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven(url = "https://jitpack.io")
@@ -19,4 +21,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "ksp-mockup"
 include(":mockup-processor")
-include(":example-app")
+if (System.getenv("JITPACK") != "true") {
+    includeBuild("mockup-core")
+    include(":example-app")
+    //  include(":example-local")
+    include(":example-data")
+}

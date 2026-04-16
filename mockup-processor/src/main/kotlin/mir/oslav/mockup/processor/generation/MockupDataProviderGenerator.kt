@@ -14,6 +14,7 @@ import java.io.OutputStream
  * @author Miroslav Hýbler <br>
  * created on 16.09.2023
  */
+//TODO use https://square.github.io/kotlinpoet/
 class MockupDataProviderGenerator constructor(
 
 ) {
@@ -28,34 +29,34 @@ class MockupDataProviderGenerator constructor(
     fun generateContent(
         outputStream: OutputStream,
         clazz: MockupType.MockUpped,
-        generatedValuesContent: String
+        generatedValuesContent: String,
+        packageName: String,
+        usePreviewParameterProviders: Boolean,
     ): String {
-        val name = clazz.name
-        val declaration = clazz.type.declaration
-        val type = declaration.simpleName.getShortName()
+        val name = clazz.providerName
+        val type = clazz.qualifiedName
         val providerClassName = "${name}MockupProvider"
-        val writtenImports = ArrayList<String>()
 
         //Header, package name and import of base class
-        //TODO change package to com.mockup since 2.0.0
         outputStream += MockupConstants.GENERATED_FILE_HEADER
         outputStream += "\n\n"
-        outputStream += "package com.mockup.providers"
+        outputStream += "package ${packageName}"
         outputStream += "\n\n"
-        outputStream += "import com.mockup.MockupDataProvider\n"
+        outputStream += "import com.mockup.core.MockupDataProvider\n"
+        outputStream += "import com.mockup.GeneratedMockupRegistry\n"
+        if (usePreviewParameterProviders) {
+            outputStream += "import androidx.compose.ui.tooling.preview.PreviewParameterProvider\n"
+        }
 
         //Used types imports
-        clazz.imports.sortedDescending().forEach { qualifiedName ->
-            if (!writtenImports.contains(element = qualifiedName)) {
-                outputStream += "import $qualifiedName\n"
-                writtenImports.add(qualifiedName)
-            }
+        clazz.imports.sortedDescending().distinct().forEach { qualifiedName ->
+            outputStream += "import $qualifiedName\n"
         }
 
         //Javadoc
         outputStream += "\n"
         outputStream += "/**\n"
-        outputStream += " * Holds the generated mockup data for $name class.\n"
+        outputStream += " * Holds the generated mockup data for ${name} class.\n"
         outputStream += " * Single item can be accessed by [${providerClassName}.single] \n"
         outputStream += " * Multiple items with [${providerClassName}.list].\n"
         outputStream += " * @since 1.0.0\n"
@@ -63,9 +64,23 @@ class MockupDataProviderGenerator constructor(
 
 
         //Class definition
-        outputStream += "public class $providerClassName internal constructor(): MockupDataProvider<$type>(\n"
-        outputStream += "\tvalues = $generatedValuesContent\n"
-        outputStream += ") {\n"
+        val previewProviderSuffix = if (usePreviewParameterProviders) {
+            ", PreviewParameterProvider<${type}>"
+        } else {
+            ""
+        }
+
+        outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
+        outputStream += "\tclazz = ${type}::class,\n"
+        outputStream += "\tvalues = run {\n"
+        outputStream += "\t\tGeneratedMockupRegistry.register()\n"
+        outputStream += "\t\t$generatedValuesContent\n"
+        outputStream += "\t}\n"
+        outputStream += "\t)${previewProviderSuffix} {\n"
+        if (usePreviewParameterProviders) {
+            outputStream += "\toverride val count: Int\n"
+            outputStream += "\t\tget() = super<MockupDataProvider>.count\n"
+        }
         outputStream += "}"
 
         return providerClassName

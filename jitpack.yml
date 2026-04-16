@@ -1,2 +1,6 @@
 jdk:
   - openjdk17
+
+#Use only publishToMavenLocal from mockup-proccessor module
+install:
+  - ./gradlew :mockup-processor:publishToMavenLocal
