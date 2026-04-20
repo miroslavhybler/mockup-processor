@@ -4,8 +4,10 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
 import com.mockup.annotations.IgnoreOnMockup
 import com.mockup.annotations.Mockup
 import mir.oslav.mockup.processor.data.InputOptions
@@ -13,9 +15,9 @@ import mir.oslav.mockup.processor.data.MockupObjectMember
 import mir.oslav.mockup.processor.data.MockupType
 import mir.oslav.mockup.processor.data.ResolvedProperty
 import mir.oslav.mockup.processor.data.WrongTypeException
-import mir.oslav.mockup.processor.generation.AbstractMockupDataProviderGenerator
+import mir.oslav.mockup.processor.generation.MockupObjectExtensionGenerator
 import mir.oslav.mockup.processor.generation.MockupDataProviderGenerator
-import mir.oslav.mockup.processor.generation.MockupObjectGenerator
+import mir.oslav.mockup.processor.generation.MockupRegistryGenerator
 import mir.oslav.mockup.processor.generation.SimpleValuesGenerator
 import mir.oslav.mockup.processor.generation.decapitalized
 import mir.oslav.mockup.processor.generation.isArray
@@ -62,6 +64,9 @@ class MockupProcessor constructor(
         //TODO use default value instead of null
         var inputOptions: InputOptions? = null
             private set
+
+        private const val CUSTOM_PROVIDER_QUALIFIED_NAME: String =
+            "com.mockup.core.CustomMockupProvider"
     }
 
     /**
@@ -126,9 +131,16 @@ class MockupProcessor constructor(
         resolver: Resolver,
     ): List<KSAnnotated> {
         val dateFormat = environment.options["mockup-date-format"]
+            ?: environment.options["mockup.dateFormat"]
             ?: DateTimeRecognizer.defaultFormat
+        val usePreviewParameterProviders =
+            environment.options["mockup.usePreviewParameterProviders"]
+                ?.toBoolean() == true
 
-        inputOptions = InputOptions(defaultDateFormat = dateFormat)
+        inputOptions = InputOptions(
+            defaultDateFormat = dateFormat,
+            usePreviewParameterProviders = usePreviewParameterProviders,
+        )
 
         if (wasInvoked && generatedProvidersCount > 0) {
             // If processor was invoked previously return emptyList() immediately for unwanted
@@ -137,6 +149,7 @@ class MockupProcessor constructor(
         }
 
         val mockupClassDeclarations = resolver.findAnnotatedClasses()
+        val customProviders = resolver.findCustomMockupProviders()
 
         if (Debugger.isDebugEnabled) {
             try {
@@ -158,17 +171,6 @@ class MockupProcessor constructor(
             }
         }
 
-        try {
-            AbstractMockupDataProviderGenerator(
-                outputStream = generateOutputFile(
-                    classes = mockupClassDeclarations,
-                    filename = "MockupDataProvider",
-                )
-            ).generateContent()
-        } catch (e: FileAlreadyExistsException) {
-            e.printStackTrace()
-            return emptyList()
-        }
 
         mockupTypesList.clear()
 
@@ -179,8 +181,9 @@ class MockupProcessor constructor(
         )
 
         mockupClassDeclarations.forEach { classDeclaration ->
-            classDeclaration.qualifiedName?.asString()
-                ?.let(block = importsList::add)
+            importsList.add(
+                element = getRootParent(classDeclaration = classDeclaration).qualifiedName!!.asString()
+            )
         }
 
         visitor.imports = importsList
@@ -197,19 +200,105 @@ class MockupProcessor constructor(
             classesDeclarations = mockupClassDeclarations,
         )
 
-        MockupObjectGenerator(
-            outputStream = generateOutputFile(
-                classes = mockupClassDeclarations,
-                filename = "Mockup",
+        if (providers.isNotEmpty()) {
+            generateMockupRegistry(
+                providers = customProviders,
+                dependenciesSources = mockupClassDeclarations + customProviders,
             )
-        ).generateContent(providers = providers)
+        }
+
+        val targetPackage = mockupClassDeclarations.firstOrNull()?.packageName?.asString()
+
+        if (targetPackage != null && providers.isNotEmpty()) {
+            MockupObjectExtensionGenerator(
+                outputStream = generateOutputFile(
+                    classes = mockupClassDeclarations,
+                    filename = "EXTENSIONS",
+                    packageName = targetPackage,
+                ),
+                targetPackageName = targetPackage
+            ).generate(providers = providers)
+        }
 
         generatedProvidersCount = providers.size
         wasInvoked = true
 
-
         Debugger.close()
         return emptyList()
+    }
+
+    private fun generateMockupRegistry(
+        providers: List<KSClassDeclaration>,
+        dependenciesSources: List<KSClassDeclaration>,
+    ) {
+        val dependencies = Dependencies(
+            aggregating = true,
+            sources = dependenciesSources
+                .mapNotNull { it.containingFile }
+                .toTypedArray(),
+        )
+
+        try {
+            MockupRegistryGenerator(
+                outputStream = environment.codeGenerator.createNewFile(
+                    packageName = "com.mockup",
+                    fileName = "GeneratedMockupRegistry",
+                    dependencies = dependencies,
+                )
+            ).generate(providers = providers)
+        } catch (exception: FileAlreadyExistsException) {
+            exception.printStackTrace()
+        }
+    }
+
+    private fun Resolver.findCustomMockupProviders(): List<KSClassDeclaration> {
+        val providers = ArrayList<KSClassDeclaration>()
+        getAllFiles().forEach { file ->
+            file.declarations.forEach { declaration ->
+                val classDeclaration = declaration as? KSClassDeclaration ?: return@forEach
+                if (classDeclaration.classKind !in listOf(ClassKind.CLASS, ClassKind.OBJECT)) {
+                    return@forEach
+                }
+                if (classDeclaration.implementsCustomMockupProvider()) {
+                    if (classDeclaration.classKind == ClassKind.CLASS) {
+                        val hasNoArgConstructor = classDeclaration.primaryConstructor
+                            ?.parameters
+                            ?.isEmpty() == true
+                        if (!hasNoArgConstructor) {
+                            environment.logger.error(
+                                "CustomMockupProvider ${classDeclaration.qualifiedName?.asString()} must have a no-arg constructor or be an object.",
+                                classDeclaration
+                            )
+                            return@forEach
+                        }
+                    }
+                    providers.add(classDeclaration)
+                }
+            }
+        }
+        return providers
+    }
+
+    private fun KSClassDeclaration.implementsCustomMockupProvider(): Boolean {
+        val visited = HashSet<KSDeclaration>()
+        fun visit(declaration: KSDeclaration): Boolean {
+            if (!visited.add(declaration)) return false
+            val classDecl = declaration as? KSClassDeclaration ?: return false
+            classDecl.superTypes.forEach { superType ->
+                val resolved = superType.resolve()
+                val superDecl = resolved.declaration
+                val qualifiedName = superDecl.qualifiedName?.asString()
+                if (qualifiedName == CUSTOM_PROVIDER_QUALIFIED_NAME) {
+                    return true
+                }
+                if (visit(superDecl)) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        return visit(this)
     }
 
 
@@ -222,7 +311,7 @@ class MockupProcessor constructor(
      */
     private fun generateMockupDataProviders(
         classesDeclarations: List<KSClassDeclaration>,
-        mockupClasses: List<MockupType.MockUpped>
+        mockupClasses: List<MockupType.MockUpped>,
     ): ArrayList<MockupObjectMember> {
 
         val outputNamesList = ArrayList<MockupObjectMember>()
@@ -240,22 +329,25 @@ class MockupProcessor constructor(
 
         mockupClasses.forEachIndexed { index, mockupClass ->
             val mockupDataGeneratedContent: String = generateMockupDataSequenceForProvider(
-                mockupClass = mockupClass
+                mockupClass = mockupClass,
             )
+            val packageName = mockupClass.declaration.packageName.asString()
 
             val dataProviderClazzName = dataProvidersGenerator.generateContent(
                 outputStream = generateOutputFile(
                     classes = classesDeclarations,
-                    filename = "${mockupClass.name}MockupProvider",
-                    packageName = "com.mockup.providers"
+                    filename = "${mockupClass.providerName}MockupProvider",
+                    packageName = packageName,
                 ),
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
+                packageName = packageName,
+                usePreviewParameterProviders = inputOptions?.usePreviewParameterProviders == true,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,
-                providerClassPackage = "com.mockup.providers",
-                propertyName = mockupClass.name,
+                providerClassPackage = packageName,
+                parentQualifiedName = mockupClass.parentDeclarations.firstOrNull()?.qualifiedName?.asString()
             )
             outputNamesList.add(element = member)
         }
@@ -285,7 +377,7 @@ class MockupProcessor constructor(
     private fun generateOutputFile(
         classes: List<KSClassDeclaration>,
         filename: String,
-        packageName: String = "com.mockup",
+        packageName: String,
         isAggregating: Boolean = true,
     ): OutputStream {
         return environment.codeGenerator.createNewFile(
@@ -325,7 +417,7 @@ class MockupProcessor constructor(
             outCode += generateItemApplyCall(mockupClass = mockupClass)
             outCode += ",\n"
         }
-        outCode += ")"
+        outCode += "\t)"
 
         return outCode
     }
@@ -385,7 +477,10 @@ class MockupProcessor constructor(
             //TODO prevent infinite collection generation
             is MockupType.Collection -> {
                 outputCode += when {
-                    type.type.isList -> "listOf(\n"
+                    type.type.isList -> {
+                        "listOf(\n"
+                    }
+
                     type.type.isArray -> "arrayOf(\n"
                     else -> throw WrongTypeException(
                         expectedType = "Generic collection type",
@@ -393,6 +488,7 @@ class MockupProcessor constructor(
                     )
                 }
                 var propertyValueCode = ""
+
                 when (val elementType = type.elementType) {
                     is MockupType.Simple -> {
                         for (i in 0 until Random.nextInt(from = 1, until = 6)) {
@@ -483,7 +579,7 @@ class MockupProcessor constructor(
         val memberClassPackageName = declaration.packageName.asString()
 
         val memberClass = mockupClasses.find { mockupClass ->
-            mockupClass.name == memberClassName
+            mockupClass.declaration == declaration
                     && mockupClass.packageName == memberClassPackageName
         } ?: throw NullPointerException(
             "Cannot generate mockup data for class ${memberClassName}. This can have two causes:\n" +
@@ -517,8 +613,7 @@ class MockupProcessor constructor(
     private fun generateItemPrimaryConstructorCall(
         mockupClass: MockupType.MockUpped,
     ): String {
-        val declaration = mockupClass.type.declaration
-        val type = declaration.simpleName.getShortName()
+        val type = mockupClass.qualifiedName
 
         //List of class properties declared in primary constructor
         val constructorProperties = mockupClass.properties
@@ -586,5 +681,15 @@ class MockupProcessor constructor(
         }
         outputText += "\t\t}"
         return outputText
+    }
+
+    private fun getRootParent(
+        classDeclaration: KSClassDeclaration,
+    ): KSClassDeclaration {
+        var parent = classDeclaration.parentDeclaration as? KSClassDeclaration
+        while (parent?.parentDeclaration != null) {
+            parent = parent.parentDeclaration as? KSClassDeclaration
+        }
+        return parent ?: classDeclaration
     }
 }

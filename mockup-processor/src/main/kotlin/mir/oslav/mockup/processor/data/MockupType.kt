@@ -20,6 +20,7 @@ import com.mockup.annotations.Mockup
  */
 sealed class MockupType<out D : KSDeclaration> private constructor(
     open val name: String,
+    open val providerName: String,
     open val type: KSType,
     open val declaration: D
 ) {
@@ -47,6 +48,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         val source: Source<*>,
     ) : MockupType<KSDeclaration>(
         name = name,
+        providerName = name,
         type = type,
         declaration = declaration
     ) {
@@ -133,16 +135,28 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
      */
     data class MockUpped constructor(
         override val name: String,
+        override val providerName: String,
         override val type: KSType,
         override val declaration: KSClassDeclaration,
+        val parentDeclarations: List<KSDeclaration>,
         val data: MockupAnnotationData,
         val imports: List<String>,
         val properties: List<ResolvedProperty>
     ) : MockupType<KSClassDeclaration>(
         name = name,
+        providerName = providerName,
         type = type,
         declaration = declaration
-    )
+    ) {
+        val qualifiedName: String
+            get() {
+                var name = declaration.simpleName.getShortName()
+                parentDeclarations.forEach { parent ->
+                    name = "${parent.simpleName.getShortName()}.$name"
+                }
+                return name
+            }
+    }
 
     /**
      * Represents enum type.
@@ -150,11 +164,13 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
      */
     data class Enum constructor(
         override val name: String,
+        override val providerName: String,
         override val type: KSType,
         override val declaration: KSDeclaration,
         val enumEntries: List<KSDeclaration>
     ) : MockupType<KSDeclaration>(
         name = name,
+        providerName = providerName,
         type = type,
         declaration = declaration,
     )
@@ -173,8 +189,9 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         val imports: List<String>,
     ) : MockupType<KSClassDeclaration>(
         name = name,
+        providerName = name,
         type = type,
-        declaration = declaration
+        declaration = declaration,
     ) {
 
     }
@@ -190,6 +207,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         override val declaration: KSDeclaration,
     ) : MockupType<KSDeclaration>(
         name = name,
+        providerName = name,
         type = type,
         declaration = declaration
     )

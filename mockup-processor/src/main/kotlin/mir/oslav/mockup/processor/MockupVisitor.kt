@@ -69,14 +69,18 @@ class MockupVisitor constructor(
 
         val annotationData = visitMockupAnnotation(classDeclaration = classDeclaration)
         val classType = classDeclaration.asType(typeArguments = emptyList())
+        val providerName = createProviderName(classDeclaration = classDeclaration)
+        val parents = getAllParents(classDeclaration = classDeclaration)
         val mockupClass = MockupType.MockUpped(
             name = annotationData.name.takeIf(predicate = String::isNotBlank)
                 ?: classDeclaration.simpleName.getShortName(),
+            providerName = providerName,
             properties = resolvedProperties,
             imports = imports,
             type = classType,
             data = annotationData,
-            declaration = classDeclaration
+            declaration = classDeclaration,
+            parentDeclarations = parents,
         )
 
         outputTypeList.add(element = mockupClass)
@@ -240,8 +244,10 @@ class MockupVisitor constructor(
             type.isEnumType -> {
                 //Since enums doesn't need @Mockup annotation it's required to include import manually
                 this.imports += listOf(type.declaration.qualifiedName!!.asString())
+                val providerName = createProviderName(declaration as KSClassDeclaration)
                 MockupType.Enum(
                     name = name,
+                    providerName = providerName,
                     type = type,
                     declaration = declaration,
                     enumEntries = getEnumConstants(enumType = type)
@@ -293,7 +299,8 @@ class MockupVisitor constructor(
             value = classDeclaration != null,
             lazyMessage = {
                 val typeName = type.declaration.simpleName.getShortName()
-                "Unable to resolve type ${typeName}. This can have two causes:\n" +
+                val qualifiedName = type.declaration.qualifiedName!!.asString()
+                "Unable to resolve type ${qualifiedName}. This can have two causes:\n" +
                         "Cause 1: Class $typeName is not supported. List of supported types can be found here https://github.com/miroslavhybler/ksp-mockup/#supported-types\n" +
                         "Cause 2: Class $typeName is not annotated with @Mockup annotation.\n" +
                         "If neither of these one has happened, please report an issue here https://github.com/miroslavhybler/ksp-mockup/issues.\n\n"
@@ -306,10 +313,14 @@ class MockupVisitor constructor(
             classDeclaration = classDeclaration,
             outputList = outputPropertiesList,
         )
+        val providerName = createProviderName(classDeclaration)
+        val parents = getAllParents(classDeclaration)
 
         return MockupType.MockUpped(
             name = classDeclaration.simpleName.getShortName(),
+            providerName = providerName,
             declaration = classDeclaration,
+            parentDeclarations = parents,
             data = visitMockupAnnotation(classDeclaration = classDeclaration),
             type = type,
             imports = imports,
@@ -508,5 +519,30 @@ class MockupVisitor constructor(
             }
 
         return MockupType.Simple.Source.Text.Random
+    }
+
+
+    private fun createProviderName(
+        classDeclaration: KSClassDeclaration,
+    ): String {
+        var parent = classDeclaration.parentDeclaration as? KSClassDeclaration
+        var name = classDeclaration.simpleName.getShortName()
+        while (parent != null) {
+            name = parent.simpleName.getShortName() + name
+            parent = parent.parentDeclaration as? KSClassDeclaration
+        }
+        return name
+    }
+
+    private fun getAllParents(
+        classDeclaration: KSClassDeclaration,
+    ): List<KSDeclaration> {
+        val parents = mutableListOf<KSDeclaration>()
+        var parent = classDeclaration.parentDeclaration
+        while (parent != null) {
+            parents.add(parent)
+            parent = (parent as? KSClassDeclaration)?.parentDeclaration
+        }
+        return parents
     }
 }
