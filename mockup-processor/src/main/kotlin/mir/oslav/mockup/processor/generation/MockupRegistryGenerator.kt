@@ -2,7 +2,15 @@ package mir.oslav.mockup.processor.generation
 
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import mir.oslav.mockup.processor.MockupConstants
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.STAR
+import com.squareup.kotlinpoet.TypeSpec
 import java.io.OutputStream
 
 class MockupRegistryGenerator(
@@ -10,39 +18,61 @@ class MockupRegistryGenerator(
 ) {
 
     fun generate(providers: List<KSClassDeclaration>) {
-        outputStream += MockupConstants.GENERATED_FILE_HEADER
-        outputStream += "\n\n"
-        outputStream += "package com.mockup\n"
-        outputStream += "\n"
-        outputStream += "import com.mockup.core.CustomMockupProvider\n"
-        outputStream += "import com.mockup.core.Mockup\n"
-        outputStream += "\n"
-        outputStream += "internal object GeneratedMockupRegistry {\n"
-        outputStream += "\tprivate var isRegistered: Boolean = false\n"
-        outputStream += "\tfun register() {\n"
-        outputStream += "\t\tif (isRegistered) return\n"
-        outputStream += "\t\tisRegistered = true\n"
-        outputStream += "\t\tval providers: List<CustomMockupProvider<*>> = listOf(\n"
+        FileSpec.builder(packageName = "com.mockup", fileName = "GeneratedMockupRegistry")
+            .addType(
+                TypeSpec.objectBuilder("GeneratedMockupRegistry")
+                    .addModifiers(KModifier.INTERNAL)
+                    .addProperty(
+                        PropertySpec.builder("isRegistered", Boolean::class, KModifier.PRIVATE)
+                            .mutable()
+                            .initializer("false")
+                            .build()
+                    )
+                    .addFunction(
+                        FunSpec.builder("register")
+                            .addCode(createRegisterCode(providers = providers))
+                            .build()
+                    )
+                    .build()
+            )
+            .build()
+            .writeGeneratedFileTo(outputStream)
+    }
 
-        providers.forEachIndexed { index, provider ->
-            val qualifiedName = provider.qualifiedName?.asString() ?: return@forEachIndexed
-            val providerInstance = if (provider.classKind == ClassKind.OBJECT) {
-                qualifiedName
-            } else {
-                "$qualifiedName()"
+    private fun createRegisterCode(
+        providers: List<KSClassDeclaration>,
+    ): CodeBlock {
+        val customProviderType = ClassName("com.mockup.core", "CustomMockupProvider")
+        val mockupType = ClassName("com.mockup.core", "Mockup")
+        val providersListType = ClassName("kotlin.collections", "List")
+            .parameterizedBy(customProviderType.parameterizedBy(STAR))
+
+        return CodeBlock.builder()
+            .addStatement("if (isRegistered) return")
+            .addStatement("isRegistered = true")
+            .add("val providers: %T = listOf(\n", providersListType)
+            .indent()
+            .apply {
+                providers.forEach { provider ->
+                    add("%L,\n", provider.providerInstanceCode())
+                }
             }
-            outputStream += "\t\t\t$providerInstance"
-            if (index != providers.lastIndex) {
-                outputStream += ","
-            }
-            outputStream += "\n"
+            .unindent()
+            .add(")\n")
+            .add("providers.forEach { provider ->\n")
+            .indent()
+            .addStatement("%T.register(provider)", mockupType)
+            .unindent()
+            .add("}\n")
+            .build()
+    }
+
+    private fun KSClassDeclaration.providerInstanceCode(): CodeBlock {
+        val providerType = toClassName()
+        return if (classKind == ClassKind.OBJECT) {
+            CodeBlock.of("%T", providerType)
+        } else {
+            CodeBlock.of("%T()", providerType)
         }
-
-        outputStream += "\t\t)\n"
-        outputStream += "\t\tproviders.forEach { provider ->\n"
-        outputStream += "\t\t\tMockup.register(provider)\n"
-        outputStream += "\t\t}\n"
-        outputStream += "\t}\n"
-        outputStream += "}\n"
     }
 }

@@ -1,5 +1,6 @@
 package mir.oslav.mockup.processor.recognition
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.MockupProcessor
 import mir.oslav.mockup.processor.data.InputOptions
 import mir.oslav.mockup.processor.data.ResolvedProperty
@@ -79,18 +80,7 @@ class DateTimeRecognizer constructor() : BaseRecognizer() {
      */
     @Deprecated(message = "Refactor in 1.2.0, recognition and code generation in two steps means more code and twice as time. Put recognition and generation in one step.")
     override fun generateCodeValueForProperty(property: ResolvedProperty): String {
-        val type = property.type
-        val code = when {
-            type.isLong -> "${System.currentTimeMillis()}"
-            type.isInt -> "${System.currentTimeMillis() / 1000L}"
-            type.isString -> generateStringDate()
-            else -> throw IllegalStateException(
-                "Unable to generate dateTime for type" +
-                        " ${type.declaration.simpleName} (${type.declaration.qualifiedName})"
-            )
-        }
-
-        return code
+        return generateCodeBlockValueForProperty(property = property).toString()
     }
 
 
@@ -101,17 +91,44 @@ class DateTimeRecognizer constructor() : BaseRecognizer() {
         property: ResolvedProperty,
         containingClassName: String
     ): String? {
+        return tryRecognizeAndGenerateCodeBlock(
+            property = property,
+            containingClassName = containingClassName,
+        )?.toString()
+    }
+
+
+    override fun tryRecognizeAndGenerateCodeBlock(
+        property: ResolvedProperty,
+        containingClassName: String,
+    ): CodeBlock? {
         if (recognizableNames.contains(element = property.name)) {
-            return generateCodeValueForProperty(property = property)
+            return generateCodeBlockValueForProperty(property = property)
         }
 
         return null
     }
 
 
+    private fun generateCodeBlockValueForProperty(
+        property: ResolvedProperty,
+    ): CodeBlock {
+        val type = property.type
+        return when {
+            type.isLong -> CodeBlock.of("%L", System.currentTimeMillis())
+            type.isInt -> CodeBlock.of("%L", (System.currentTimeMillis() / 1000L).toInt())
+            type.isString -> CodeBlock.of("%S", generateStringDate())
+            else -> throw IllegalStateException(
+                "Unable to generate dateTime for type" +
+                        " ${type.declaration.simpleName} (${type.declaration.qualifiedName})"
+            )
+        }
+    }
+
+
     /**
      * Generates random date and formats it by [InputOptions.defaultDateFormat]
-     * @return Code for string dateTime property, e.g. 22-05-2023
+     * @return String dateTime property value, e.g. 22-05-2023
      * @since 1.1.0
      */
     private fun generateStringDate(): String {
@@ -154,7 +171,7 @@ class DateTimeRecognizer constructor() : BaseRecognizer() {
             )
         }
         val stringDate = formatter.format(Date(calendar.timeInMillis))
-        return "\"$stringDate\""
+        return stringDate
     }
 
 

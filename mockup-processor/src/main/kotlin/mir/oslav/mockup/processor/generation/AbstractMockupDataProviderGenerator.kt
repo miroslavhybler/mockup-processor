@@ -1,6 +1,15 @@
 package mir.oslav.mockup.processor.generation
 
-import mir.oslav.mockup.processor.MockupConstants
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.MemberName
+import com.squareup.kotlinpoet.ParameterSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
 import java.io.OutputStream
 
 
@@ -23,45 +32,80 @@ import java.io.OutputStream
         expression = "Mockup",
         imports = ["com.mockup.core.AbstractMockupDataProviderGenerator"]
     )
-)class AbstractMockupDataProviderGenerator constructor(
+)
+class AbstractMockupDataProviderGenerator constructor(
     private val outputStream: OutputStream,
 ) {
-
 
     /**
      * Writes code into [outputStream]
      * @since 1.0.0
      */
     fun generateContent() {
+        val typeVariable = TypeVariableName(
+            name = "T",
+            bounds = listOf(ClassName("kotlin", "Any")),
+        )
+        val sequenceType = ClassName("kotlin.sequences", "Sequence").parameterizedBy(typeVariable)
+        val listType = ClassName("kotlin.collections", "List").parameterizedBy(typeVariable)
+        val previewParameterProviderType =
+            ClassName("androidx.compose.ui.tooling.preview", "PreviewParameterProvider")
 
-        //File header
-        outputStream += MockupConstants.GENERATED_FILE_HEADER
-        outputStream += "\n\n\n"
-        outputStream += "package com.mockup"
-        outputStream += "\n\n\n"
-
-
-        outputStream += "import androidx.compose.ui.tooling.preview.PreviewParameterProvider"
-        outputStream += "\n"
-
-        //Javadoc
-        outputStream += "/**\n"
-        outputStream += " * Defines the mockup data provider class\n"
-        outputStream += " * @param values Generated mockup data, must be not empty\n"
-        outputStream += " * @since 1.0.O\n"
-        outputStream += " */\n"
-
-        //Code
-        outputStream += "public abstract class MockupDataProvider<T : Any> constructor(\n"
-        outputStream += "\t override val values: Sequence<T> = emptySequence()\n"
-        outputStream += "): PreviewParameterProvider<T> {\n"
-        outputStream += "\n"
-        outputStream += "\tval single: T get() = values.first()\n"
-        outputStream += "\n"
-        outputStream += "\tval list: List<T> get() = values.toList()\n"
-        outputStream += "\n"
-        outputStream += "\tval random: T get() = list.random()\n"
-        outputStream += "}"
+        FileSpec.builder(packageName = "com.mockup", fileName = "MockupDataProvider")
+            .addType(
+                TypeSpec.classBuilder("MockupDataProvider")
+                    .addModifiers(KModifier.PUBLIC, KModifier.ABSTRACT)
+                    .addTypeVariable(typeVariable)
+                    .addKdoc(
+                        "Defines the mockup data provider class\n" +
+                                "@param values Generated mockup data, must be not empty\n" +
+                                "@since 1.0.O\n"
+                    )
+                    .primaryConstructor(
+                        FunSpec.constructorBuilder()
+                            .addParameter(
+                                ParameterSpec.builder("values", sequenceType)
+                                    .defaultValue("%M()", MemberName("kotlin.sequences", "emptySequence"))
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .addSuperinterface(previewParameterProviderType.parameterizedBy(typeVariable))
+                    .addProperty(
+                        PropertySpec.builder("values", sequenceType, KModifier.OVERRIDE)
+                            .initializer("values")
+                            .build()
+                    )
+                    .addProperty(
+                        PropertySpec.builder("single", typeVariable)
+                            .getter(
+                                FunSpec.getterBuilder()
+                                    .addStatement("return values.first()")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .addProperty(
+                        PropertySpec.builder("list", listType)
+                            .getter(
+                                FunSpec.getterBuilder()
+                                    .addStatement("return values.toList()")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .addProperty(
+                        PropertySpec.builder("random", typeVariable)
+                            .getter(
+                                FunSpec.getterBuilder()
+                                    .addStatement("return list.random()")
+                                    .build()
+                            )
+                            .build()
+                    )
+                    .build()
+            )
+            .build()
+            .writeGeneratedFileTo(outputStream)
     }
-
 }

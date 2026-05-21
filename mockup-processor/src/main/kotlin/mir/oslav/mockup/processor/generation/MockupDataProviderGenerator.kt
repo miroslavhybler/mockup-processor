@@ -1,7 +1,14 @@
 package mir.oslav.mockup.processor.generation
 
 import com.mockup.annotations.Mockup
-import mir.oslav.mockup.processor.MockupConstants
+import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.KModifier
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeSpec
 import mir.oslav.mockup.processor.data.MockupType
 import java.io.OutputStream
 
@@ -14,7 +21,6 @@ import java.io.OutputStream
  * @author Miroslav Hýbler <br>
  * created on 16.09.2023
  */
-//TODO use https://square.github.io/kotlinpoet/
 class MockupDataProviderGenerator constructor(
 
 ) {
@@ -29,61 +35,82 @@ class MockupDataProviderGenerator constructor(
     fun generateContent(
         outputStream: OutputStream,
         clazz: MockupType.MockUpped,
-        generatedValuesContent: String,
+        generatedValuesContent: CodeBlock,
         packageName: String,
         usePreviewParameterProviders: Boolean,
     ): String {
         val name = clazz.providerName
-        val type = clazz.qualifiedName
         val providerClassName = "${name}MockupProvider"
+        val providerType = ClassName(packageName, providerClassName)
+        val targetType = clazz.toClassName()
+        val mockupDataProviderType = ClassName("com.mockup.core", "MockupDataProvider")
+        val generatedRegistryType = ClassName("com.mockup", "GeneratedMockupRegistry")
 
-        //Header, package name and import of base class
-        outputStream += MockupConstants.GENERATED_FILE_HEADER
-        outputStream += "\n\n"
-        outputStream += "package ${packageName}"
-        outputStream += "\n\n"
-        outputStream += "import com.mockup.core.MockupDataProvider\n"
-        outputStream += "import com.mockup.GeneratedMockupRegistry\n"
+        val mockupDataProviderOfTarget = mockupDataProviderType.parameterizedBy(targetType)
+        val providerBuilder = TypeSpec.classBuilder(providerType)
+            .addKdoc(
+                "Holds the generated mockup data for %L class.\n" +
+                        "Single item can be accessed by [%L.single]\n" +
+                        "Multiple items with [%L.list].\n" +
+                        "@since 1.0.0\n",
+                name,
+                providerClassName,
+                providerClassName,
+            )
+            .primaryConstructor(
+                FunSpec.constructorBuilder()
+                    .addModifiers(KModifier.INTERNAL)
+                    .build()
+            )
+            .superclass(mockupDataProviderOfTarget)
+            .addSuperclassConstructorParameter("clazz = %T::class", targetType)
+            .addSuperclassConstructorParameter(
+                "values = %L",
+                createValuesCodeBlock(
+                    generatedRegistryType = generatedRegistryType,
+                    generatedValuesContent = generatedValuesContent,
+                )
+            )
+
         if (usePreviewParameterProviders) {
-            outputStream += "import androidx.compose.ui.tooling.preview.PreviewParameterProvider\n"
+            val previewParameterProviderType = ClassName(
+                packageName = "androidx.compose.ui.tooling.preview",
+                simpleNames = listOf("PreviewParameterProvider"),
+            )
+            providerBuilder.addSuperinterface(
+                superinterface = previewParameterProviderType.parameterizedBy(
+                    targetType
+                )
+            )
+            providerBuilder.addProperty(
+                PropertySpec.builder(name = "count", type = Int::class, KModifier.OVERRIDE)
+                    .getter(
+                        FunSpec.getterBuilder()
+                            .addStatement("return super<%T>.count", mockupDataProviderType)
+                            .build()
+                    )
+                    .build()
+            )
         }
 
-        //Used types imports
-        clazz.imports.sortedDescending().distinct().forEach { qualifiedName ->
-            outputStream += "import $qualifiedName\n"
-        }
-
-        //Javadoc
-        outputStream += "\n"
-        outputStream += "/**\n"
-        outputStream += " * Holds the generated mockup data for ${name} class.\n"
-        outputStream += " * Single item can be accessed by [${providerClassName}.single] \n"
-        outputStream += " * Multiple items with [${providerClassName}.list].\n"
-        outputStream += " * @since 1.0.0\n"
-        outputStream += " */\n"
-
-
-        //Class definition
-        val previewProviderSuffix = if (usePreviewParameterProviders) {
-            ", PreviewParameterProvider<${type}>"
-        } else {
-            ""
-        }
-
-        outputStream += "public class ${providerClassName} internal constructor(): MockupDataProvider<${type}>(\n"
-        outputStream += "\tclazz = ${type}::class,\n"
-        outputStream += "\tvalues = run {\n"
-        outputStream += "\t\tGeneratedMockupRegistry.register()\n"
-        outputStream += "\t\t$generatedValuesContent\n"
-        outputStream += "\t}\n"
-        outputStream += "\t)${previewProviderSuffix} {\n"
-        if (usePreviewParameterProviders) {
-            outputStream += "\toverride val count: Int\n"
-            outputStream += "\t\tget() = super<MockupDataProvider>.count\n"
-        }
-        outputStream += "}"
+        FileSpec.builder(packageName, fileName = providerClassName)
+            .addType(typeSpec = providerBuilder.build())
+            .build()
+            .writeGeneratedFileTo(outputStream)
 
         return providerClassName
+    }
+
+    private fun createValuesCodeBlock(
+        generatedRegistryType: ClassName,
+        generatedValuesContent: CodeBlock,
+    ): CodeBlock {
+        return CodeBlock.builder()
+            .beginControlFlow("run")
+            .addStatement("%T.register()", generatedRegistryType)
+            .add("%L\n", generatedValuesContent)
+            .endControlFlow()
+            .build()
     }
 
 }

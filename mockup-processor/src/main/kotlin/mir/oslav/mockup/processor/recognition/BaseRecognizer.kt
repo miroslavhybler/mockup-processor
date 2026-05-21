@@ -2,6 +2,7 @@
 
 package mir.oslav.mockup.processor.recognition
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.data.ResolvedProperty
 
 
@@ -51,4 +52,15 @@ public abstract class BaseRecognizer public constructor() {
         property: ResolvedProperty,
         containingClassName: String,
     ): String?
+
+
+    public open fun tryRecognizeAndGenerateCodeBlock(
+        property: ResolvedProperty,
+        containingClassName: String,
+    ): CodeBlock? {
+        return tryRecognizeAndGenerateValue(
+            property = property,
+            containingClassName = containingClassName,
+        )?.let { code -> CodeBlock.of("%L", code) }
+    }
 }

@@ -140,7 +140,6 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         override val declaration: KSClassDeclaration,
         val parentDeclarations: List<KSDeclaration>,
         val data: MockupAnnotationData,
-        val imports: List<String>,
         val properties: List<ResolvedProperty>
     ) : MockupType<KSClassDeclaration>(
         name = name,
@@ -186,7 +185,6 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         override val type: KSType,
         override val declaration: KSClassDeclaration,
         val elementType: MockupType<*>,
-        val imports: List<String>,
     ) : MockupType<KSClassDeclaration>(
         name = name,
         providerName = name,

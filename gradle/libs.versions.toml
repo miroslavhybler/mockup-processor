@@ -4,6 +4,7 @@ kotlin = "2.3.0"
 kotlinx = "1.9.0"
 ksp = "2.3.4"
 dokka = "2.1.0"
+kotlinpoet = "2.3.0"
 core-ktx = "1.17.0"
 lifecycle-runtime-ktx = "2.10.0"
 activity-compose = "1.12.2"
@@ -37,6 +38,7 @@ compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
+kotlinpoet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinpoet" }
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
 auto-service = { module = "com.google.auto.service:auto-service", version.ref = "auto-service" }
 auto-service-annotations = { module = "com.google.auto.service:auto-service-annotations", version.ref = "auto-service" }

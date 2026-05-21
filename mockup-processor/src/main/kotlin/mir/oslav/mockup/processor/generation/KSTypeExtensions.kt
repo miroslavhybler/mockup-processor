@@ -3,18 +3,6 @@ package mir.oslav.mockup.processor.generation
 import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import java.io.OutputStream
-
-
-/**
- * Writes [other] text into the output stream
- * @since 1.0.0
- * @author Miroslav Hýbler <br>
- * created on 15.09.2023
- */
-operator fun OutputStream.plusAssign(other: String) {
-    this.write(other.toByteArray())
-}
 
 
 /**

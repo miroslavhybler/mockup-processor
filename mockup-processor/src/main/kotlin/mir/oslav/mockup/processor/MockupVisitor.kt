@@ -45,13 +45,6 @@ class MockupVisitor constructor(
     private val allClassesDeclarations: List<KSClassDeclaration>
 ) : KSVisitorVoid() {
 
-
-    /**
-     * @since 1.0.0
-     */
-    var imports: List<String> = emptyList()
-
-
     /**
      * Visits class annotated with [Mockup] and resolves it's properties.
      * @since 1.0.0
@@ -76,7 +69,6 @@ class MockupVisitor constructor(
                 ?: classDeclaration.simpleName.getShortName(),
             providerName = providerName,
             properties = resolvedProperties,
-            imports = imports,
             type = classType,
             data = annotationData,
             declaration = classDeclaration,
@@ -134,7 +126,6 @@ class MockupVisitor constructor(
                 type = type,
                 property = property,
                 name = name,
-                imports = imports,
                 primaryConstructorDeclaration = primaryConstructorParameter,
             )
 
@@ -143,7 +134,6 @@ class MockupVisitor constructor(
                 name = name,
                 type = type,
                 declaration = declaration,
-                imports = imports,
                 isMutable = property.isMutable,
                 isDelegated = property.isDelegated(),
                 isInPrimaryConstructorProperty = isInsidePrimaryConstructor,
@@ -212,7 +202,6 @@ class MockupVisitor constructor(
      * @param type -> Type to resolve
      * @param name -> name of type class or property name based on context
      * @param property -> Property declaration with [type]
-     * @param imports -> Imports that are needed by [type] and [property]
      * @return Resolved Mockup type
      * @throws IllegalArgumentException
      * @since 1.0.0
@@ -221,7 +210,6 @@ class MockupVisitor constructor(
         type: KSType,
         name: String,
         property: KSPropertyDeclaration,
-        imports: List<String>,
         primaryConstructorDeclaration: KSValueParameter?,
     ): MockupType<*> {
         val declaration = type.declaration
@@ -242,8 +230,6 @@ class MockupVisitor constructor(
             }
 
             type.isEnumType -> {
-                //Since enums doesn't need @Mockup annotation it's required to include import manually
-                this.imports += listOf(type.declaration.qualifiedName!!.asString())
                 val providerName = createProviderName(declaration as KSClassDeclaration)
                 MockupType.Enum(
                     name = name,
@@ -265,11 +251,9 @@ class MockupVisitor constructor(
                     elementType = resolveMockupType(
                         type = itemType,
                         name = declaration.simpleName.getShortName(),
-                        imports = imports,
                         property = property,
                         primaryConstructorDeclaration = primaryConstructorDeclaration,
                     ),
-                    imports = imports
                 )
             }
 
@@ -323,7 +307,6 @@ class MockupVisitor constructor(
             parentDeclarations = parents,
             data = visitMockupAnnotation(classDeclaration = classDeclaration),
             type = type,
-            imports = imports,
             properties = outputPropertiesList
         )
     }

@@ -12,7 +12,6 @@ package mir.oslav.mockup.processor.data
 data class MockupObjectMember constructor(
     val providerClassName: String,
     val providerClassPackage: String,
-    val parentQualifiedName: String?
 ) {
 
 val qualifiedName: String
