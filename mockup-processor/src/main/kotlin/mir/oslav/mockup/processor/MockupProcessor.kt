@@ -43,8 +43,15 @@ class MockupProcessor constructor(
          * ```
          * @since 1.1.0
          */
-        //TODO use default value instead of null
-        var inputOptions: InputOptions? = null
+        /**
+         * Resolved processor options for the current KSP run.
+         * Defaults are available before [process] runs so value recognizers never have to handle
+         * a missing options object.
+         * @since 1.1.0
+         */
+        var inputOptions: InputOptions = InputOptions(
+            defaultDateFormat = DateTimeRecognizer.defaultFormat,
+        )
             private set
 
         private const val CUSTOM_PROVIDER_QUALIFIED_NAME: String =
@@ -70,6 +77,10 @@ class MockupProcessor constructor(
     private lateinit var visitor: MockupVisitor
 
 
+    /**
+     * Generates provider value expressions from resolved mockup metadata.
+     * @since 2.0.0
+     */
     private val mockupValuesCodeGenerator: MockupValuesCodeGenerator = MockupValuesCodeGenerator()
 
     /**
@@ -182,6 +193,12 @@ class MockupProcessor constructor(
         return emptyList()
     }
 
+    /**
+     * Generates the registry that registers all discovered custom providers.
+     * @param providers Custom provider declarations found in processed sources.
+     * @param dependenciesSources Source declarations that should invalidate the generated registry.
+     * @since 2.0.0
+     */
     private fun generateMockupRegistry(
         providers: List<KSClassDeclaration>,
         dependenciesSources: List<KSClassDeclaration>,
@@ -206,6 +223,11 @@ class MockupProcessor constructor(
         }
     }
 
+    /**
+     * Finds classes and objects in the module that implement `CustomMockupProvider`.
+     * @return Custom provider declarations with valid construction shape.
+     * @since 2.0.0
+     */
     private fun Resolver.findCustomMockupProviders(): List<KSClassDeclaration> {
         val providers = ArrayList<KSClassDeclaration>()
         getAllFiles().forEach { file ->
@@ -234,6 +256,12 @@ class MockupProcessor constructor(
         return providers
     }
 
+    /**
+     * Checks whether this declaration implements `CustomMockupProvider` directly or through a
+     * superclass/interface chain.
+     * @return `true` when the custom provider type is found.
+     * @since 2.0.0
+     */
     private fun KSClassDeclaration.implementsCustomMockupProvider(): Boolean {
         val visited = HashSet<KSDeclaration>()
         fun visit(declaration: KSDeclaration): Boolean {
@@ -298,7 +326,7 @@ class MockupProcessor constructor(
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
                 packageName = packageName,
-                usePreviewParameterProviders = inputOptions?.usePreviewParameterProviders == true,
+                usePreviewParameterProviders = inputOptions.usePreviewParameterProviders,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,

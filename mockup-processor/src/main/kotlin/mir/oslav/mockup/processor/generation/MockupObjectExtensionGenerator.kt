@@ -13,6 +13,9 @@ import java.io.OutputStream
 
 
 /**
+ * Generates legacy `Mockup.providerName` extension accessors and their backing provider list.
+ * @param outputStream Target KSP file stream.
+ * @param targetPackageName Package where extension accessors should be generated.
  * @author Miroslav Hýbler <br>
  * created on 19.12.2025
  * @since 2.0.0
@@ -46,12 +49,18 @@ class MockupObjectExtensionGenerator constructor(
         fileBuilder.build().writeGeneratedFileTo(outputStream, includeHeader = false)
     }
 
+    /**
+     * Creates a private singleton provider property used by generated extension getters.
+     */
     private fun MockupObjectMember.createBackingProviderProperty(): PropertySpec {
         return PropertySpec.builder(backingPropertyName, toProviderClassName(), KModifier.PRIVATE)
             .initializer("%T()", toProviderClassName())
             .build()
     }
 
+    /**
+     * Creates the internal list consumed by generated data lookup helpers.
+     */
     private fun createProvidersListProperty(
         providers: List<MockupObjectMember>,
     ): PropertySpec {
@@ -68,6 +77,9 @@ class MockupObjectExtensionGenerator constructor(
             .build()
     }
 
+    /**
+     * Creates a deprecated extension property on `Mockup` for this provider.
+     */
     private fun MockupObjectMember.createMockupExtensionProperty(): PropertySpec {
         val providerType = toProviderClassName()
         val mockupType = ClassName("com.mockup.core", "Mockup")
@@ -83,6 +95,9 @@ class MockupObjectExtensionGenerator constructor(
             .build()
     }
 
+    /**
+     * Creates the deprecation annotation used by generated extension properties.
+     */
     private fun MockupObjectMember.createDeprecationAnnotation(): AnnotationSpec {
         return AnnotationSpec.builder(Deprecated::class)
             .addMember(
@@ -97,9 +112,15 @@ class MockupObjectExtensionGenerator constructor(
             .build()
     }
 
+    /**
+     * Name of the generated private property that stores a provider instance.
+     */
     private val MockupObjectMember.backingPropertyName: String
         get() = "m$providerClassName"
 
+    /**
+     * Converts this provider descriptor to its generated provider type.
+     */
     private fun MockupObjectMember.toProviderClassName(): ClassName {
         return ClassName(packageName = providerClassPackage, providerClassName)
     }

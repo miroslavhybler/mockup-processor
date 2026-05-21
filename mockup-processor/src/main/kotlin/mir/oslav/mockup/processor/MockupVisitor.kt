@@ -38,12 +38,19 @@ import mir.oslav.mockup.processor.generation.isString
  * @author Miroslav Hýbler <br>
  * created on 15.09.2023
  */
-//TODO circular dependency - when class uses itself as parameter it leads to stackOverflow
 class MockupVisitor constructor(
     private val environment: SymbolProcessorEnvironment,
     private val outputTypeList: ArrayList<MockupType<*>>,
     private val allClassesDeclarations: List<KSClassDeclaration>
 ) : KSVisitorVoid() {
+
+    /**
+     * Stack of declarations currently being resolved. It is used to stop circular mockup graphs
+     * with a readable processor error instead of allowing recursive property resolution to overflow
+     * the stack.
+     * @since 2.0.0
+     */
+    private val classResolutionStack: ArrayDeque<KSClassDeclaration> = ArrayDeque()
 
     /**
      * Visits class annotated with [Mockup] and resolves it's properties.
@@ -87,6 +94,28 @@ class MockupVisitor constructor(
      * @since 1.0.0
      */
     private fun visitClassImpl(
+        classDeclaration: KSClassDeclaration,
+        outputList: ArrayList<ResolvedProperty>,
+    ) {
+        ensureNoCircularDependency(classDeclaration = classDeclaration)
+        classResolutionStack.addLast(classDeclaration)
+
+        try {
+            visitClassProperties(
+                classDeclaration = classDeclaration,
+                outputList = outputList,
+            )
+        } finally {
+            classResolutionStack.removeLast()
+        }
+    }
+
+
+    /**
+     * Resolves declared properties for [classDeclaration] into [outputList].
+     * @since 2.0.0
+     */
+    private fun visitClassProperties(
         classDeclaration: KSClassDeclaration,
         outputList: ArrayList<ResolvedProperty>,
     ) {
@@ -142,6 +171,30 @@ class MockupVisitor constructor(
             )
             outputList.add(element = resolvedProperty)
         }
+    }
+
+
+    /**
+     * Throws a descriptive error when resolving [classDeclaration] would revisit a class already on
+     * the current property-resolution stack.
+     * @throws IllegalStateException when an unsupported circular mockup dependency is detected.
+     * @since 2.0.0
+     */
+    private fun ensureNoCircularDependency(
+        classDeclaration: KSClassDeclaration,
+    ) {
+        if (classDeclaration !in classResolutionStack) {
+            return
+        }
+
+        val cycle = (classResolutionStack + classDeclaration).joinToString(separator = " -> ") {
+            it.qualifiedName?.asString() ?: it.simpleName.asString()
+        }
+        throw IllegalStateException(
+            "Circular @Mockup dependency detected: $cycle. " +
+                    "Circular mock data graphs are not supported. Annotate one side with " +
+                    "@IgnoreOnMockup or provide a CustomMockupProvider for that type."
+        )
     }
 
 

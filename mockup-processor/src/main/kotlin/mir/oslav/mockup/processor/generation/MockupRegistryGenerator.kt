@@ -13,10 +13,20 @@ import com.squareup.kotlinpoet.STAR
 import com.squareup.kotlinpoet.TypeSpec
 import java.io.OutputStream
 
+/**
+ * Generates the `com.mockup.GeneratedMockupRegistry` file used to register custom mockup providers.
+ * @param outputStream Target KSP file stream.
+ * @since 2.0.0
+ */
 class MockupRegistryGenerator(
     private val outputStream: OutputStream,
 ) {
 
+    /**
+     * Writes the generated registry file.
+     * @param providers Custom provider declarations discovered in the processed module.
+     * @since 2.0.0
+     */
     fun generate(providers: List<KSClassDeclaration>) {
         FileSpec.builder(packageName = "com.mockup", fileName = "GeneratedMockupRegistry")
             .addType(
@@ -39,6 +49,11 @@ class MockupRegistryGenerator(
             .writeGeneratedFileTo(outputStream)
     }
 
+    /**
+     * Builds the body of `GeneratedMockupRegistry.register()`.
+     * @param providers Custom providers to register.
+     * @return Code block that guards repeated registration and forwards providers to `Mockup`.
+     */
     private fun createRegisterCode(
         providers: List<KSClassDeclaration>,
     ): CodeBlock {
@@ -67,6 +82,10 @@ class MockupRegistryGenerator(
             .build()
     }
 
+    /**
+     * Builds the expression used inside the registry provider list.
+     * Objects are referenced directly; classes are instantiated with a no-argument constructor.
+     */
     private fun KSClassDeclaration.providerInstanceCode(): CodeBlock {
         val providerType = toClassName()
         return if (classKind == ClassKind.OBJECT) {

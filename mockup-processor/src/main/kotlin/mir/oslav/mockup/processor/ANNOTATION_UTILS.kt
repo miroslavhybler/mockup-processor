@@ -2,14 +2,16 @@ package mir.oslav.mockup.processor
 
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import kotlin.reflect.KClass
 
 
 /**
- * TODO docs on functions
- * @author Miroslav Hýbler <br>
- * created on 25.10.2025
+ * Finds [target] on this symbol or on one of this symbol's annotations.
+ *
+ * This supports declarations such as custom annotations annotated with `@IntRange`, `@StringDef`,
+ * and similar Android annotations. Direct annotations win over meta-annotations.
+ * @param target Annotation class to find.
+ * @return Matching [KSAnnotation], or `null` when neither the symbol nor its annotations contain it.
  * @since 1.2.2
  */
 fun KSAnnotated.findAnnotationInAnnotationTree(
@@ -49,6 +51,8 @@ fun KSAnnotated.findAnnotationInAnnotationTree(
 
 /**
  * Tries to find annotation by [target] in [KSAnnotated.annotations].
+ * @param target Annotation class to find directly on this symbol.
+ * @return Matching [KSAnnotation], or `null` when it is not present.
  * @since 1.2.2
  */
 fun KSAnnotated.findAnnotationInstance(
@@ -61,6 +65,9 @@ fun KSAnnotated.findAnnotationInstance(
 
 
 /**
+ * Checks whether this annotation declaration is itself annotated with [target].
+ * @param target Meta-annotation class to find.
+ * @return `true` when [target] is present on this annotation's declaration.
  * @since 1.2.2
  */
 fun KSAnnotation.isAnnotatedWith(
@@ -78,6 +85,9 @@ fun KSAnnotation.isAnnotatedWith(
 
 
 /**
+ * Checks whether this [KSAnnotation] resolves to [target].
+ * @param target Annotation class to compare against.
+ * @return `true` when this annotation's qualified name matches [target].
  * @since 1.2.2
  */
 fun KSAnnotation.isInstanceOf(target: KClass<*>): Boolean {

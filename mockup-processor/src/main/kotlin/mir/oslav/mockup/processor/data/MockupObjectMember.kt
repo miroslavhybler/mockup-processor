@@ -14,9 +14,10 @@ data class MockupObjectMember constructor(
     val providerClassPackage: String,
 ) {
 
-val qualifiedName: String
-    get() = "${providerClassPackage}.${providerClassName}"
-
-
-
+    /**
+     * Fully qualified generated provider class name.
+     * @since 1.0.0
+     */
+    val qualifiedName: String
+        get() = "${providerClassPackage}.${providerClassName}"
 }

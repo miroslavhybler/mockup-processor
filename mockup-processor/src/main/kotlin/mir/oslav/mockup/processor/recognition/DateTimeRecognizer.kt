@@ -133,9 +133,6 @@ class DateTimeRecognizer constructor() : BaseRecognizer() {
      */
     private fun generateStringDate(): String {
         val options = MockupProcessor.inputOptions
-            ?: throw IllegalStateException(
-                "Unable to generate date, MockupProcessor.inputOptions are null!!"
-            )
         val format = options.defaultDateFormat
 
         val year = Random.nextInt(from = 1900, until = 2100)

@@ -13,6 +13,8 @@ import kotlin.random.Random
 
 /**
  * Generates the `Sequence<T>` expression passed into generated mockup data providers.
+ * @param simpleValuesGenerator Generator used for scalar literals.
+ * @param recognizers Contextual value generators such as image URL and date recognizers.
  * @since 2.0.0
  */
 class MockupValuesCodeGenerator constructor(
@@ -24,6 +26,13 @@ class MockupValuesCodeGenerator constructor(
     ),
 ) {
 
+    /**
+     * Generates a `sequenceOf(...)` expression for [mockupClass].
+     * @param mockupClass Mockup class whose instances should be generated.
+     * @param mockupClasses All mockup classes known in the current processor run.
+     * @return Code block containing the provider values expression.
+     * @since 2.0.0
+     */
     fun generate(
         mockupClass: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
@@ -47,6 +56,9 @@ class MockupValuesCodeGenerator constructor(
             .build()
     }
 
+    /**
+     * Generates the right-hand side expression for [property].
+     */
     private fun generateCodeForProperty(
         property: ResolvedProperty,
         mockupClasses: List<MockupType.MockUpped>,
@@ -88,6 +100,9 @@ class MockupValuesCodeGenerator constructor(
         }
     }
 
+    /**
+     * Generates `listOf(...)` or `arrayOf(...)` for a collection [type].
+     */
     private fun generateCollectionValueCode(
         type: MockupType.Collection,
         property: ResolvedProperty,
@@ -151,6 +166,9 @@ class MockupValuesCodeGenerator constructor(
             .build()
     }
 
+    /**
+     * Generates an empty primitive-array expression for [type].
+     */
     private fun generateCodeForFixedTypeArray(
         type: MockupType.FixedTypeArray,
     ): CodeBlock {
@@ -171,6 +189,9 @@ class MockupValuesCodeGenerator constructor(
         }
     }
 
+    /**
+     * Generates a constructor/apply expression for a nested mocked type.
+     */
     private fun generateCodeForMockUppedType(
         type: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
@@ -209,6 +230,9 @@ class MockupValuesCodeGenerator constructor(
             .build()
     }
 
+    /**
+     * Generates the constructor call for [mockupClass].
+     */
     private fun generateItemPrimaryConstructorCall(
         mockupClass: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
@@ -241,6 +265,9 @@ class MockupValuesCodeGenerator constructor(
             .build()
     }
 
+    /**
+     * Generates the `.apply { ... }` block for mutable properties outside the primary constructor.
+     */
     private fun generateItemApplyCall(
         mockupClass: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
@@ -275,6 +302,9 @@ class MockupValuesCodeGenerator constructor(
             .build()
     }
 
+    /**
+     * Returns true when this property is annotated with `@IgnoreOnMockup`.
+     */
     private fun ResolvedProperty.isIgnoredOnMockup(): Boolean {
         return type.annotations.find { annotation ->
             val declaration = annotation.annotationType.resolve().declaration

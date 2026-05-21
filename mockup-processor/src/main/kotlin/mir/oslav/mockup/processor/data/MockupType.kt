@@ -34,10 +34,9 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
 
 
     /**
-     * Represents a simple data type (etc. [Int], [String], ...), [KSType.isSimpleType] must always
+     * Represents a simple data type (etc. [Int], [String], ...), `KSType.isSimpleType` must always
      * be true, otherwise type was not recognized correctly and [WrongTypeException] would be thrown
      * elsewhere.
-     * @see KSType.isSimpleType
      * @since 1.0.0
      */
     data class Simple constructor(
@@ -55,7 +54,10 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
 
 
         /**
-         * TODO docs
+         * Describes where generated values for a simple property should come from.
+         *
+         * Sources are resolved from supported annotations first, such as Android range and def
+         * annotations, and fall back to random generation when no annotation constraint exists.
          * @since 1.2.2
          */
         sealed class Source<T : Any> private constructor() {
@@ -67,16 +69,22 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
             sealed class IntNumber : Source<IntNumber>() {
 
                 /**
+                 * Integer value constrained to the half-open range [from, to).
+                 * @param from Inclusive lower bound.
+                 * @param to Exclusive upper bound.
                  * @since 1.2.2
                  */
                 data class Range constructor(val from: Int, val to: Int) : IntNumber()
 
                 /**
+                 * Integer value selected from [values].
+                 * @param values Allowed integer values.
                  * @since 1.2.2
                  */
                 data class Def constructor(val values: List<Int>) : IntNumber()
 
                 /**
+                 * Unconstrained random integer value.
                  * @since 1.2.2
                  */
                 data object Random : IntNumber()
@@ -89,12 +97,16 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
             sealed class FloatNumber : Source<FloatNumber>() {
 
                 /**
+                 * Float value constrained by annotation range metadata.
+                 * @param from Lower bound declared by the annotation.
+                 * @param to Upper bound declared by the annotation.
                  * @since 1.2.2
                  */
                 data class Range constructor(val from: Float, val to: Float) : FloatNumber()
 
 
                 /**
+                 * Unconstrained random float value.
                  * @since 1.2.2
                  */
                 data object Random : FloatNumber()
@@ -107,12 +119,15 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
             sealed class Text : Source<String>() {
 
                 /**
+                 * Text value selected from [values].
+                 * @param values Allowed string values.
                  * @since 1.2.2
                  */
                 data class Def constructor(val values: List<String>) : Text()
 
 
                 /**
+                 * Unconstrained generated text value.
                  * @since 1.2.2
                  */
                 data object Random : Text()
@@ -176,7 +191,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
 
 
     /**
-     * Represents generic collection type,  [KSType.isGenericCollectionType] must be true for [type]
+     * Represents generic collection type, `KSType.isGenericCollectionType` must be true for [type].
      * @param elementType Resolved [MockupType] of elements,
      * @since 1.0.0
      */
@@ -196,7 +211,7 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
 
     /**
      * Represents a array with known type (e.g. intArray, floatArray, ...).
-     * @see KSType.isFixedArrayType
+     * The wrapped [type] must satisfy `KSType.isFixedArrayType`.
      * @since 1.0.0
      */
     data class FixedTypeArray constructor(
