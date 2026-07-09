@@ -31,6 +31,8 @@ object Debugger {
 
 
     /**
+     * Stores [outputStream] for later debug writes when [isDebugEnabled] is true.
+     * @param outputStream Stream created by KSP for debug output.
      * @since 1.1.3
      */
     fun setOutputStream(outputStream: OutputStream) {
@@ -41,6 +43,8 @@ object Debugger {
 
 
     /**
+     * Writes [text] as a generated-file comment when debugging is enabled.
+     * @param text Message to append to the debug output.
      * @since 1.1.3
      */
     fun write(text: String) {
@@ -51,6 +55,7 @@ object Debugger {
 
 
     /**
+     * Closes the debug output stream when one was opened.
      * @since 1.1.3
      */
     fun close() {

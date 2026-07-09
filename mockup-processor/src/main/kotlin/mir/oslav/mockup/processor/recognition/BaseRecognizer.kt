@@ -2,6 +2,7 @@
 
 package mir.oslav.mockup.processor.recognition
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.data.ResolvedProperty
 
 
@@ -46,9 +47,35 @@ public abstract class BaseRecognizer public constructor() {
         property: ResolvedProperty,
     ): String
 
-
+    /**
+     * Recognizes [property] and returns generated Kotlin code when this recognizer can provide a
+     * contextual value.
+     * @param property Class property to inspect.
+     * @param containingClassName Name of the class containing [property].
+     * @return Generated Kotlin expression as text, or `null` when this recognizer does not apply.
+     * @since 1.2.0
+     */
     public abstract fun tryRecognizeAndGenerateValue(
         property: ResolvedProperty,
         containingClassName: String,
     ): String?
+
+
+    /**
+     * Recognizes [property] and returns a KotlinPoet expression when this recognizer can provide a
+     * contextual value.
+     * @param property Class property to inspect.
+     * @param containingClassName Name of the class containing [property].
+     * @return Generated expression, or `null` when this recognizer does not apply.
+     * @since 2.0.0
+     */
+    public open fun tryRecognizeAndGenerateCodeBlock(
+        property: ResolvedProperty,
+        containingClassName: String,
+    ): CodeBlock? {
+        return tryRecognizeAndGenerateValue(
+            property = property,
+            containingClassName = containingClassName,
+        )?.let { code -> CodeBlock.of("%L", code) }
+    }
 }

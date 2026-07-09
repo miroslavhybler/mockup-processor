@@ -16,7 +16,6 @@ import com.google.devtools.ksp.symbol.KSValueParameter
  * constructor. See [primaryConstructorDeclaration]
  * @param primaryConstructorDeclaration <b>Added in 1.1.6</b>, non null when property of class is
  * declared in it's primary constructor, which is most common case for data classes.
- * @param imports All imports that are needed by this property.
  * @param resolvedType Wrapped type of this property
  * @param isMutable True when property is mutable (declared with var keyword in source). False
  * when property is not mutable (declared with "val" keyword in source)
@@ -32,7 +31,6 @@ data class ResolvedProperty constructor(
     val type: KSType,
     val declaration: KSDeclaration?,
     val primaryConstructorDeclaration: KSValueParameter?,
-    val imports: List<String>,
     val resolvedType: MockupType<*>,
     val isMutable: Boolean,
     val isInPrimaryConstructorProperty: Boolean,

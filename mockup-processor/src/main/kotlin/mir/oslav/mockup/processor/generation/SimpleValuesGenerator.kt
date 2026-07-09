@@ -1,5 +1,6 @@
 package mir.oslav.mockup.processor.generation
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.data.MockupType
 import mir.oslav.mockup.processor.data.ResolvedProperty
 import mir.oslav.mockup.processor.data.WrongTypeException
@@ -8,7 +9,10 @@ import kotlin.random.Random
 
 
 /**
- * TODO - handle properties with lazy declaration (do not generate value)
+ * Generates KotlinPoet expressions for simple scalar values.
+ *
+ * Delegated and lazy properties are filtered before this generator is called. This class only
+ * receives simple properties that are safe to assign or pass into constructors.
  * @author Miroslav Hýbler <br>
  * created on 17.05.2024
  * @since 1.1.6
@@ -18,6 +22,7 @@ class SimpleValuesGenerator constructor() {
     /**
      * Generates random code for value of [property], e.g. `id = 123`
      * @param property Single property of class
+     * @param resolvedProperty Original resolved property metadata.
      * @return Generated code
      * @throws WrongTypeException
      * @since 1.1.6
@@ -25,17 +30,18 @@ class SimpleValuesGenerator constructor() {
     fun generate(
         property: MockupType.Simple,
         resolvedProperty: ResolvedProperty,
-    ): String {
+    ): CodeBlock {
         val type = property.type
         return when {
             //Simple types and string
             type.isShort -> {
-                "${
+                CodeBlock.of(
+                    "%L",
                     Random.nextInt(
                         from = Short.MIN_VALUE.toInt(),
                         until = Short.MAX_VALUE.toInt(),
-                    )
-                }"
+                    ),
+                )
             }
 
             type.isInt -> {
@@ -52,9 +58,9 @@ class SimpleValuesGenerator constructor() {
                 )
             }
 
-            type.isLong -> "${Random.nextInt()}"
-            type.isDouble -> "${Random.nextDouble()}"
-            type.isBoolean -> "${Random.nextBoolean()}"
+            type.isLong -> CodeBlock.of("%L", Random.nextInt())
+            type.isDouble -> CodeBlock.of("%L", Random.nextDouble())
+            type.isBoolean -> CodeBlock.of("%L", Random.nextBoolean())
             type.isString -> {
                 generateStringValue(
                     property = property,
@@ -70,15 +76,15 @@ class SimpleValuesGenerator constructor() {
     /**
      * ### Refactored in 1.2.2
      * [MockupType.Simple.Source.IntNumber] was introduced to handle values and annotations based limitations.
-     * @param property
-     * @param resolvedProperty
-     * @return Generated code consisting of string holding generated int value
+     * @param property Simple integer property with an [MockupType.Simple.Source.IntNumber] source.
+     * @param resolvedProperty Original resolved property metadata.
+     * @return Generated integer expression.
      * @since 1.1.6
      */
     private fun generateIntegerValue(
         property: MockupType.Simple,
         resolvedProperty: ResolvedProperty
-    ): String {
+    ): CodeBlock {
 
         val source = property.source as? MockupType.Simple.Source.IntNumber
             ?: throw WrongTypeException(
@@ -90,32 +96,32 @@ class SimpleValuesGenerator constructor() {
         return when (source) {
             is MockupType.Simple.Source.IntNumber.Range -> {
                 val intValue = Random.nextInt(from = source.from, until = source.to)
-                "$intValue"
+                CodeBlock.of("%L", intValue)
             }
 
             is MockupType.Simple.Source.IntNumber.Def -> {
                 val intValue = source.values.random()
-                "$intValue"
+                CodeBlock.of("%L", intValue)
             }
 
             is MockupType.Simple.Source.IntNumber.Random -> {
                 val intValue = Random.nextInt()
-                "$intValue"
+                CodeBlock.of("%L", intValue)
             }
         }
     }
 
 
     /**
-     * @param property
-     * @param resolvedProperty
-     * @return Generated code consisting of string holding generated float value
+     * @param property Simple float property with a [MockupType.Simple.Source.FloatNumber] source.
+     * @param resolvedProperty Original resolved property metadata.
+     * @return Generated float expression.
      * @since 1.1.6
      */
     private fun generateFloatValue(
         property: MockupType.Simple,
         resolvedProperty: ResolvedProperty
-    ): String {
+    ): CodeBlock {
         val source = property.source as? MockupType.Simple.Source.FloatNumber
             ?: throw WrongTypeException(
                 expectedType = "FloatNumber",
@@ -125,21 +131,28 @@ class SimpleValuesGenerator constructor() {
         return when (source) {
             is MockupType.Simple.Source.FloatNumber.Range -> {
                 val floatValue = Random.nextFloat()
-                "${floatValue}f"
+                CodeBlock.of("%Lf", floatValue)
             }
 
             is MockupType.Simple.Source.FloatNumber.Random -> {
                 val floatValue = Random.nextFloat()
-                "${floatValue}f"
+                CodeBlock.of("%Lf", floatValue)
             }
         }
     }
 
-
+    /**
+     * Generates a string expression for [property].
+     * @param property Simple string property with a [MockupType.Simple.Source.Text] source.
+     * @param resolvedProperty Original resolved property metadata.
+     * @return Generated string literal expression.
+     * @throws WrongTypeException when [property] does not use a text source.
+     * @since 1.1.6
+     */
     fun generateStringValue(
         property: MockupType.Simple,
         resolvedProperty: ResolvedProperty
-    ): String {
+    ): CodeBlock {
         val source = property.source as? MockupType.Simple.Source.Text
             ?: throw WrongTypeException(
                 expectedType = "Text",
@@ -149,12 +162,12 @@ class SimpleValuesGenerator constructor() {
         return when (source) {
             is MockupType.Simple.Source.Text.Def -> {
                 val stringValue = source.values.random()
-                "\"$stringValue\""
+                CodeBlock.of("%S", stringValue)
             }
 
             is MockupType.Simple.Source.Text.Random -> {
                 val loremIpsum = loremIpsumWords(wordCount = Random.nextInt(from = 2, until = 60))
-                "\"$loremIpsum\""
+                CodeBlock.of("%S", loremIpsum)
             }
         }
     }

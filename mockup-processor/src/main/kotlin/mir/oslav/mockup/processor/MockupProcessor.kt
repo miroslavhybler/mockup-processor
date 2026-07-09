@@ -8,34 +8,16 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
-import com.mockup.annotations.IgnoreOnMockup
 import com.mockup.annotations.Mockup
 import mir.oslav.mockup.processor.data.InputOptions
 import mir.oslav.mockup.processor.data.MockupObjectMember
 import mir.oslav.mockup.processor.data.MockupType
-import mir.oslav.mockup.processor.data.ResolvedProperty
-import mir.oslav.mockup.processor.data.WrongTypeException
-import mir.oslav.mockup.processor.generation.MockupObjectExtensionGenerator
 import mir.oslav.mockup.processor.generation.MockupDataProviderGenerator
+import mir.oslav.mockup.processor.generation.MockupObjectExtensionGenerator
 import mir.oslav.mockup.processor.generation.MockupRegistryGenerator
-import mir.oslav.mockup.processor.generation.SimpleValuesGenerator
-import mir.oslav.mockup.processor.generation.decapitalized
-import mir.oslav.mockup.processor.generation.isArray
-import mir.oslav.mockup.processor.generation.isBooleanArray
-import mir.oslav.mockup.processor.generation.isByteArray
-import mir.oslav.mockup.processor.generation.isCharArray
-import mir.oslav.mockup.processor.generation.isDoubleArray
-import mir.oslav.mockup.processor.generation.isFloatArray
-import mir.oslav.mockup.processor.generation.isIntArray
-import mir.oslav.mockup.processor.generation.isList
-import mir.oslav.mockup.processor.generation.isLongArray
-import mir.oslav.mockup.processor.generation.isShortArray
-import mir.oslav.mockup.processor.recognition.BaseRecognizer
+import mir.oslav.mockup.processor.generation.MockupValuesCodeGenerator
 import mir.oslav.mockup.processor.recognition.DateTimeRecognizer
-import mir.oslav.mockup.processor.recognition.ImageUrlRecognizer
-import mir.oslav.mockup.processor.recognition.UsernameRecognizer
 import java.io.OutputStream
-import kotlin.random.Random
 
 
 /**
@@ -61,8 +43,15 @@ class MockupProcessor constructor(
          * ```
          * @since 1.1.0
          */
-        //TODO use default value instead of null
-        var inputOptions: InputOptions? = null
+        /**
+         * Resolved processor options for the current KSP run.
+         * Defaults are available before [process] runs so value recognizers never have to handle
+         * a missing options object.
+         * @since 1.1.0
+         */
+        var inputOptions: InputOptions = InputOptions(
+            defaultDateFormat = DateTimeRecognizer.defaultFormat,
+        )
             private set
 
         private const val CUSTOM_PROVIDER_QUALIFIED_NAME: String =
@@ -74,13 +63,6 @@ class MockupProcessor constructor(
      * @since 1.0.0
      */
     private val mockupTypesList: ArrayList<MockupType<*>> = ArrayList()
-
-
-    /**
-     * Hods all imports that are needed in generated classes.
-     * @since 1.0.0
-     */
-    private val importsList: ArrayList<String> = ArrayList()
 
 
     /**
@@ -96,18 +78,10 @@ class MockupProcessor constructor(
 
 
     /**
-     * @since 1.1.6
+     * Generates provider value expressions from resolved mockup metadata.
+     * @since 2.0.0
      */
-    private var simpleValuesGenerator: SimpleValuesGenerator = SimpleValuesGenerator()
-
-    /**
-     * @since 1.1.0
-     */
-    private val recognizers: List<BaseRecognizer> = listOf(
-        ImageUrlRecognizer(),
-        DateTimeRecognizer(),
-        UsernameRecognizer()
-    )
+    private val mockupValuesCodeGenerator: MockupValuesCodeGenerator = MockupValuesCodeGenerator()
 
     /**
      * In order to prevent ksp from <a href="https://kotlinlang.org/docs/ksp-multi-round.html#changes-to-getsymbolsannotatedwith">multiple round processing</a>
@@ -181,14 +155,6 @@ class MockupProcessor constructor(
         )
 
         mockupClassDeclarations.forEach { classDeclaration ->
-            importsList.add(
-                element = getRootParent(classDeclaration = classDeclaration).qualifiedName!!.asString()
-            )
-        }
-
-        visitor.imports = importsList
-
-        mockupClassDeclarations.forEach { classDeclaration ->
             visitor.visitClassDeclaration(
                 classDeclaration = classDeclaration,
                 data = Unit,
@@ -227,6 +193,12 @@ class MockupProcessor constructor(
         return emptyList()
     }
 
+    /**
+     * Generates the registry that registers all discovered custom providers.
+     * @param providers Custom provider declarations found in processed sources.
+     * @param dependenciesSources Source declarations that should invalidate the generated registry.
+     * @since 2.0.0
+     */
     private fun generateMockupRegistry(
         providers: List<KSClassDeclaration>,
         dependenciesSources: List<KSClassDeclaration>,
@@ -251,6 +223,11 @@ class MockupProcessor constructor(
         }
     }
 
+    /**
+     * Finds classes and objects in the module that implement `CustomMockupProvider`.
+     * @return Custom provider declarations with valid construction shape.
+     * @since 2.0.0
+     */
     private fun Resolver.findCustomMockupProviders(): List<KSClassDeclaration> {
         val providers = ArrayList<KSClassDeclaration>()
         getAllFiles().forEach { file ->
@@ -279,6 +256,12 @@ class MockupProcessor constructor(
         return providers
     }
 
+    /**
+     * Checks whether this declaration implements `CustomMockupProvider` directly or through a
+     * superclass/interface chain.
+     * @return `true` when the custom provider type is found.
+     * @since 2.0.0
+     */
     private fun KSClassDeclaration.implementsCustomMockupProvider(): Boolean {
         val visited = HashSet<KSDeclaration>()
         fun visit(declaration: KSDeclaration): Boolean {
@@ -327,9 +310,10 @@ class MockupProcessor constructor(
             }
         )
 
-        mockupClasses.forEachIndexed { index, mockupClass ->
-            val mockupDataGeneratedContent: String = generateMockupDataSequenceForProvider(
+        mockupClasses.forEach { mockupClass ->
+            val mockupDataGeneratedContent = mockupValuesCodeGenerator.generate(
                 mockupClass = mockupClass,
+                mockupClasses = mockupClasses,
             )
             val packageName = mockupClass.declaration.packageName.asString()
 
@@ -342,12 +326,11 @@ class MockupProcessor constructor(
                 clazz = mockupClass,
                 generatedValuesContent = mockupDataGeneratedContent,
                 packageName = packageName,
-                usePreviewParameterProviders = inputOptions?.usePreviewParameterProviders == true,
+                usePreviewParameterProviders = inputOptions.usePreviewParameterProviders,
             )
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,
                 providerClassPackage = packageName,
-                parentQualifiedName = mockupClass.parentDeclarations.firstOrNull()?.qualifiedName?.asString()
             )
             outputNamesList.add(element = member)
         }
@@ -390,306 +373,5 @@ class MockupProcessor constructor(
             packageName = packageName,
             fileName = filename.removeSuffix(suffix = ".kt"),
         )
-    }
-
-
-    /**
-     * Generates code listOf(...) with items for data provider<br/>
-     * ```kotlin
-     *sequenceOf(
-     *User().apply {
-     *      id = 123
-     *      firstName = "John"
-     *      lastName = "Doe"
-     *   }
-     *)
-     * ```
-     * @return Generated code
-     * @since 1.0.0
-     */
-    private fun generateMockupDataSequenceForProvider(
-        mockupClass: MockupType.MockUpped,
-    ): String {
-        var outCode = "sequenceOf(\n"
-
-        for (i in 0 until mockupClass.data.count) {
-            outCode += generateItemPrimaryConstructorCall(mockupClass = mockupClass)
-            outCode += generateItemApplyCall(mockupClass = mockupClass)
-            outCode += ",\n"
-        }
-        outCode += "\t)"
-
-        return outCode
-    }
-
-
-    /**
-     * Generates property's value assignment code.<br>
-     * <b>Simple Types</b><br/>
-     * generates single line code of assignment like: ```id = 123```<br/><br/>
-     * #### Mockup classes Type
-     * Generates code of assignment for class property. [generateCodeForMockUppedType] will choose
-     * if it will use primary constructor or [apply] scope function for [MockupType.MockUpped.properties].
-     * <br/><br/>
-     * <b>Collection Type</b><br/>
-     * @return Generated code
-     * @see generateCodeForProperty
-     * @since 1.0.0
-     */
-    private fun generateCodeForProperty(
-        property: ResolvedProperty,
-    ): String {
-        var outputCode = ""
-        outputCode += "\t\t\t"
-        outputCode += "${property.name.decapitalized()} = "
-
-        recognizers.forEach { recognizer ->
-            val codeForProperty = recognizer.tryRecognizeAndGenerateValue(
-                property = property,
-                containingClassName = property.containingClassName,
-            )
-            if (codeForProperty != null) {
-                outputCode += codeForProperty
-                return outputCode
-            }
-
-        }
-        when (val type = property.resolvedType) {
-            is MockupType.Simple -> {
-                val propertyValue = simpleValuesGenerator.generate(
-                    property = type,
-                    resolvedProperty = property
-                )
-                outputCode += propertyValue
-            }
-
-            is MockupType.MockUpped -> {
-                val propertyValue = generateCodeForMockUppedType(
-                    type = type,
-                    mockupClasses = mockupTypesList.filterIsInstance<MockupType.MockUpped>(),
-                )
-                outputCode += propertyValue
-            }
-
-            is MockupType.Enum -> {
-                outputCode += "${type.declaration.simpleName.asString()}.${type.enumEntries.random().simpleName.asString()}\n"
-            }
-            //TODO prevent infinite collection generation
-            is MockupType.Collection -> {
-                outputCode += when {
-                    type.type.isList -> {
-                        "listOf(\n"
-                    }
-
-                    type.type.isArray -> "arrayOf(\n"
-                    else -> throw WrongTypeException(
-                        expectedType = "Generic collection type",
-                        givenType = type.name
-                    )
-                }
-                var propertyValueCode = ""
-
-                when (val elementType = type.elementType) {
-                    is MockupType.Simple -> {
-                        for (i in 0 until Random.nextInt(from = 1, until = 6)) {
-                            propertyValueCode += simpleValuesGenerator.generate(
-                                property = elementType,
-                                resolvedProperty = property,
-                            )
-                            if (i != 4) {
-                                propertyValueCode += ",\n"
-                            }
-                        }
-                    }
-
-                    is MockupType.MockUpped -> {
-                        for (i in 0 until 5) {
-                            propertyValueCode += generateCodeForMockUppedType(
-                                mockupClasses = mockupTypesList.filterIsInstance<MockupType.MockUpped>(),
-                                type = elementType,
-                            )
-                            if (i != 4) {
-                                propertyValueCode += ",\n"
-                            }
-                        }
-                    }
-
-                    is MockupType.Enum -> {
-                        outputCode += "${elementType.enumEntries.random().simpleName.asString()}\n"
-                    }
-
-                    is MockupType.FixedTypeArray -> generateCodeForFixedTypeArray(type = elementType)
-                    is MockupType.Collection -> propertyValueCode = ""
-                }
-
-                outputCode += propertyValueCode
-                outputCode += ")\n"
-            }
-
-            is MockupType.FixedTypeArray -> {
-                val propertyValue = generateCodeForFixedTypeArray(type = type)
-                outputCode += propertyValue
-            }
-        }
-
-        return outputCode
-    }
-
-
-    /**
-     * @throws WrongTypeException
-     * @since 1.0.0
-     */
-    private fun generateCodeForFixedTypeArray(
-        type: MockupType.FixedTypeArray,
-    ): String {
-        val elementType = type.type
-        return when {
-            elementType.isShortArray -> "shortArrayOf()"
-            elementType.isIntArray -> "intArrayOf()"
-            elementType.isLongArray -> "longArrayOf()"
-            elementType.isFloatArray -> "floatArrayOf()"
-            elementType.isDoubleArray -> "doubleArrayOf()"
-            elementType.isCharArray -> "charArrayOf()"
-            elementType.isByteArray -> "byteArrayOf()"
-            elementType.isBooleanArray -> "booleanArray()"
-            else -> throw WrongTypeException(
-                expectedType = "FixedArrayType",
-                givenType = "$elementType"
-            )
-        }
-    }
-
-
-    /**
-     * Generates code for class
-     * @return Genrated code
-     * @throws NullPointerException
-     * @since 1.0.0
-     * @see generateItemPrimaryConstructorCall
-     * @see generateCodeForProperty
-     */
-    private fun generateCodeForMockUppedType(
-        type: MockupType.MockUpped,
-        mockupClasses: List<MockupType.MockUpped>,
-    ): String {
-        var outCode = ""
-        val declaration = type.type.declaration
-        val memberClassName = declaration.simpleName.getShortName()
-        val memberClassPackageName = declaration.packageName.asString()
-
-        val memberClass = mockupClasses.find { mockupClass ->
-            mockupClass.declaration == declaration
-                    && mockupClass.packageName == memberClassPackageName
-        } ?: throw NullPointerException(
-            "Cannot generate mockup data for class ${memberClassName}. This can have two causes:\n" +
-                    "Cause 1: Class $memberClassName is not supported. List of supported types can be found here https://github.com/miroslavhybler/ksp-mockup/#supported-types\n" +
-                    "Cause 2: Class $memberClassName is not annotated with @Mockup annotation.\n" +
-                    "If you want to exclude it, use @IgnoreOnMockup annotation on the parameter.\n" +
-                    "If neither of these one has happened, please report an issue here https://github.com/miroslavhybler/ksp-mockup/issues.\n\n"
-        )
-
-        outCode += generateItemPrimaryConstructorCall(mockupClass = memberClass)
-        outCode += generateItemApplyCall(mockupClass = memberClass)
-
-        return outCode
-    }
-
-
-    /**
-     * Generates data item creation using its primary constructor. If [mockupClass] is data class or
-     * its having parameters in primary constructor, they will be generated to
-     * Generated code should look like this:<br>
-     * ```kotlin
-     *User(
-     *   id = 123,<br>
-     *   firstname = "John",<br>
-     *   lastName = "Doe",<br>
-     *)
-     * ```
-     * @return Generated code
-     * @since 1.0.0
-     */
-    private fun generateItemPrimaryConstructorCall(
-        mockupClass: MockupType.MockUpped,
-    ): String {
-        val type = mockupClass.qualifiedName
-
-        //List of class properties declared in primary constructor
-        val constructorProperties = mockupClass.properties
-            .filter(predicate = ResolvedProperty::isInPrimaryConstructorProperty)
-
-        if (constructorProperties.isEmpty()) {
-            return "\t\t$type()"
-        }
-
-        var outputText = ""
-        outputText += "\t\t$type(\n"
-        constructorProperties.forEach { property ->
-            outputText += generateCodeForProperty(property = property)
-            outputText += ",\n"
-        }
-        outputText += "\t\t)"
-        return outputText
-    }
-
-
-    /**
-     * If [mockupClass] has properties that are not declared inside primary constructor, additional
-     * code will be generated. Generated code consist of call apply extension function with assignment
-     * of class's properties.
-     * ```kotlin
-     *.apply {
-     *   id = 123
-     *   firstName = "John"
-     *   lastName = "Doe"
-     * }
-     * ```
-     * @return Generated code
-     * @since 1.0.0
-     */
-    private fun generateItemApplyCall(
-        mockupClass: MockupType.MockUpped,
-    ): String {
-        val notConstructorParameters = mockupClass.properties
-            //Property MUST be mutable to assign value
-            .filter(predicate = ResolvedProperty::isMutable)
-            //Property MUST not use lazy delegation
-            .filter(predicate = ResolvedProperty::isNotDelegate)
-            //Property MUST NOT be declared in primary constructor, those are generated in generateItemPrimaryConstructorCall
-            .filter(predicate = ResolvedProperty::isNotInPrimaryConstructorProperty)
-
-        if (notConstructorParameters.isEmpty()) {
-            return ""
-        }
-
-        var outputText = ".apply {\n"
-        notConstructorParameters.forEach { property ->
-            val annotations = property.type.annotations
-            val foundAnnotation = annotations
-                .find(predicate = { annotation ->
-                    val declaration = annotation.annotationType.resolve().declaration
-                    declaration.qualifiedName?.asString() == IgnoreOnMockup::class.qualifiedName
-                })
-            if (foundAnnotation != null) {
-                //Skipping because annotation is annotated with @IgnoreOnMockup
-                return@forEach
-            }
-
-            outputText += generateCodeForProperty(property = property)
-            outputText += "\n"
-        }
-        outputText += "\t\t}"
-        return outputText
-    }
-
-    private fun getRootParent(
-        classDeclaration: KSClassDeclaration,
-    ): KSClassDeclaration {
-        var parent = classDeclaration.parentDeclaration as? KSClassDeclaration
-        while (parent?.parentDeclaration != null) {
-            parent = parent.parentDeclaration as? KSClassDeclaration
-        }
-        return parent ?: classDeclaration
     }
 }

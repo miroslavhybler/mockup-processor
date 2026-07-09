@@ -1,5 +1,6 @@
 package mir.oslav.mockup.processor.recognition
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.data.ResolvedProperty
 import mir.oslav.mockup.processor.generation.isString
 
@@ -78,6 +79,7 @@ class ImageUrlRecognizer constructor() : BaseRecognizer() {
      * @return True when [property] is considered being image url.
      * @since 1.1.0
      */
+    @Deprecated(message = "Refactor in 1.2.0, recognition and code generation in two steps meains more code and twice as time. Put recognition and generation in one step.")
     override fun recognize(property: ResolvedProperty, containingClassName: String): Boolean {
 
         if(!property.type.isString) {
@@ -99,16 +101,24 @@ class ImageUrlRecognizer constructor() : BaseRecognizer() {
      * @return Code, and actual image url wrapped in "".
      * @since 1.1.0
      */
-    override tailrec fun generateCodeValueForProperty(
+    @Deprecated(message = "Refactor in 1.2.0, recognition and code generation in two steps means more code and twice as time. Put recognition and generation in one step.")
+    override fun generateCodeValueForProperty(
         property: ResolvedProperty
     ): String {
+        return generateCodeBlockValueForProperty(property = property).toString()
+    }
+
+
+    private tailrec fun generateCodeBlockValueForProperty(
+        property: ResolvedProperty
+    ): CodeBlock {
         if (iterator.hasNext()) {
             val imageUrl = iterator.next()
-            return "\"$imageUrl\""
+            return CodeBlock.of("%S", imageUrl)
         }
 
         iterator = imageUrlList.iterator()
-        return generateCodeValueForProperty(property = property)
+        return generateCodeBlockValueForProperty(property = property)
     }
 
 
@@ -119,16 +129,27 @@ class ImageUrlRecognizer constructor() : BaseRecognizer() {
         property: ResolvedProperty,
         containingClassName: String
     ): String? {
+        return tryRecognizeAndGenerateCodeBlock(
+            property = property,
+            containingClassName = containingClassName,
+        )?.toString()
+    }
+
+
+    override fun tryRecognizeAndGenerateCodeBlock(
+        property: ResolvedProperty,
+        containingClassName: String,
+    ): CodeBlock? {
         val isClear = recognizableNames.contains(element = property.name)
         if (isClear) {
-            return generateCodeValueForProperty(property = property)
+            return generateCodeBlockValueForProperty(property = property)
         }
         val isMaybe = recognizableNames.find { imgPropertyName ->
             property.name.contains(other = imgPropertyName, ignoreCase = true)
         } != null
 
         return if (isMaybe) {
-            generateCodeValueForProperty(property = property)
+            generateCodeBlockValueForProperty(property = property)
         } else null
     }
 }

@@ -12,12 +12,12 @@ package mir.oslav.mockup.processor.data
 data class MockupObjectMember constructor(
     val providerClassName: String,
     val providerClassPackage: String,
-    val parentQualifiedName: String?
 ) {
 
-val qualifiedName: String
-    get() = "${providerClassPackage}.${providerClassName}"
-
-
-
+    /**
+     * Fully qualified generated provider class name.
+     * @since 1.0.0
+     */
+    val qualifiedName: String
+        get() = "${providerClassPackage}.${providerClassName}"
 }

@@ -2,6 +2,7 @@
 
 package mir.oslav.mockup.processor.recognition
 
+import com.squareup.kotlinpoet.CodeBlock
 import mir.oslav.mockup.processor.data.ResolvedProperty
 import mir.oslav.mockup.processor.generation.isString
 
@@ -139,6 +140,17 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
         property: ResolvedProperty,
         containingClassName: String
     ): String? {
+        return tryRecognizeAndGenerateCodeBlock(
+            property = property,
+            containingClassName = containingClassName,
+        )?.toString()
+    }
+
+
+    override fun tryRecognizeAndGenerateCodeBlock(
+        property: ResolvedProperty,
+        containingClassName: String,
+    ): CodeBlock? {
         if (!property.type.isString) {
             //Only string can be username
             return null
@@ -158,11 +170,11 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
         if (isRecognized) {
             if (!firstNamesIterator.hasNext()) {
                 firstNamesIterator = firstNames.iterator()
-                return generateCodeValueForProperty(property = property)
+                return generateCodeBlockValueForProperty(property = property)
             }
             if (!lastNamesIterator.hasNext()) {
                 lastNamesIterator = lastNames.iterator()
-                return generateCodeValueForProperty(property = property)
+                return generateCodeBlockValueForProperty(property = property)
             }
 
             val username = when {
@@ -170,7 +182,7 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
                 isLastName -> lastNamesIterator.next()
                 else -> "${firstNamesIterator.next()} ${lastNamesIterator.next()}"
             }
-            return "\"$username\""
+            return CodeBlock.of("%S", username)
         }
 
         return null
@@ -180,6 +192,7 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
     /**
      * @since 1.1.3
      */
+    @Deprecated(message = "Refactor in 1.2.0, recognition and code generation in two steps meains more code and twice as time. Put recognition and generation in one step.")
     override fun recognize(property: ResolvedProperty, containingClassName: String): Boolean {
         if (!property.type.isString) {
             //Only string can be username
@@ -202,15 +215,21 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
     /**
      * @since 1.1.3
      */
+    @Deprecated(message = "Refactor in 1.2.0, recognition and code generation in two steps means more code and twice as time. Put recognition and generation in one step.")
     override fun generateCodeValueForProperty(property: ResolvedProperty): String {
+        return generateCodeBlockValueForProperty(property = property).toString()
+    }
+
+
+    private fun generateCodeBlockValueForProperty(property: ResolvedProperty): CodeBlock {
         if (!firstNamesIterator.hasNext()) {
             firstNamesIterator = firstNames.iterator()
-            return generateCodeValueForProperty(property = property)
+            return generateCodeBlockValueForProperty(property = property)
         }
 
         if (!lastNamesIterator.hasNext()) {
             lastNamesIterator = lastNames.iterator()
-            return generateCodeValueForProperty(property = property)
+            return generateCodeBlockValueForProperty(property = property)
         }
 
         val isFirstName = recognizableFirstNames.contains(element = property.name)
@@ -222,6 +241,6 @@ class UsernameRecognizer constructor() : BaseRecognizer() {
             isLastName -> lastNamesIterator.next()
             else -> "${firstNamesIterator.next()} ${lastNamesIterator.next()}"
         }
-        return "\"$username\""
+        return CodeBlock.of("%S", username)
     }
 }
