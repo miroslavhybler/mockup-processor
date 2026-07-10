@@ -24,6 +24,6 @@ include(":mockup-processor")
 if (System.getenv("JITPACK") != "true") {
     includeBuild("mockup-core")
     include(":example-app")
-    include(":example-local")
+    //include(":example-local")
     include(":example-data")
 }
