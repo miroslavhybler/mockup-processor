@@ -2,8 +2,15 @@ package mir.oslav.mockup.processor.generation
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.Variance
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.STAR
+import com.squareup.kotlinpoet.TypeName
+import com.squareup.kotlinpoet.WildcardTypeName
 import mir.oslav.mockup.processor.MockupConstants
 import mir.oslav.mockup.processor.data.MockupType
 import java.io.OutputStream
@@ -39,6 +46,25 @@ internal fun MockupType.MockUpped.toClassName(): ClassName {
 }
 
 /**
+ * Converts a mocked class descriptor to the type exposed by the generated provider.
+ *
+ * Type aliases are preserved here so `MockupDataProvider<ListOfUsersResponse>` is generated for
+ * alias providers, while regular generic usages are rendered as parameterized class names.
+ * @since 2.0.0
+ */
+internal fun MockupType.MockUpped.toProviderTargetTypeName(): TypeName {
+    return typeAlias?.toClassName() ?: toConstructorTypeName()
+}
+
+/**
+ * Converts a mocked class descriptor to the concrete type used for constructor calls.
+ * @since 2.0.0
+ */
+internal fun MockupType.MockUpped.toConstructorTypeName(): TypeName {
+    return type.toTypeName()
+}
+
+/**
  * Converts an enum descriptor to the KotlinPoet type used for enum-entry references.
  * @return KotlinPoet class name including nested parent class names.
  * @since 2.0.0
@@ -57,6 +83,45 @@ internal fun KSClassDeclaration.toClassName(): ClassName {
         packageName = packageName.asString(),
         simpleNames = parentClassNames() + simpleName.getShortName(),
     )
+}
+
+/**
+ * Converts a KSP type into a KotlinPoet [TypeName], preserving concrete type arguments.
+ * @since 2.0.0
+ */
+internal fun KSType.toTypeName(): TypeName {
+    val classDeclaration = declaration as? KSClassDeclaration
+        ?: error("Unable to generate KotlinPoet TypeName for ${declaration.simpleName.asString()}.")
+    val className = classDeclaration.toClassName()
+    val typeName = if (arguments.isEmpty()) {
+        className
+    } else {
+        className.parameterizedBy(
+            arguments.map { argument ->
+                if (argument.variance == Variance.STAR || argument.type == null) {
+                    STAR
+                } else {
+                    val argumentTypeName = argument.type!!.resolve().toTypeName()
+                    when (argument.variance) {
+                        Variance.COVARIANT -> WildcardTypeName.producerOf(argumentTypeName)
+                        Variance.CONTRAVARIANT -> WildcardTypeName.consumerOf(argumentTypeName)
+                        Variance.INVARIANT -> argumentTypeName
+                        Variance.STAR -> STAR
+                    }
+                }
+            }
+        )
+    }
+
+    return typeName.copy(nullable = isMarkedNullable)
+}
+
+/**
+ * Converts a KSP typealias declaration into a KotlinPoet [ClassName].
+ * @since 2.0.0
+ */
+private fun KSTypeAlias.toClassName(): ClassName {
+    return ClassName(packageName = packageName.asString(), simpleName.getShortName())
 }
 
 /**

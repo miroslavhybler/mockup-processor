@@ -155,6 +155,31 @@ enum class AuthorRank {
 }
 
 
+@Mockup
+data class UserInfo constructor(
+    val id: Int,
+    val name: String,
+)
+
+
+@Mockup(count = 2)
+data class ListApiResponse<T> constructor(
+    @SerialName(value = "data")
+    val data: List<T>,
+)
+
+
+typealias ListOfUsersResponse = ListApiResponse<UserInfo>
+
+typealias UnkownTypeHolder = ListApiResponse<Unit>
+
+
+@Mockup
+data class UsersScreenState constructor(
+    val users: ListApiResponse<UserInfo>,
+)
+
+
 /**
  * Example for Json serialization (requires `org.jetbrains.kotlin.plugin.serialization` plugin)
  */

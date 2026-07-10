@@ -8,6 +8,7 @@ import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
+import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.mockup.annotations.Mockup
 import mir.oslav.mockup.processor.data.InputOptions
 import mir.oslav.mockup.processor.data.MockupObjectMember
@@ -123,6 +124,9 @@ class MockupProcessor constructor(
         }
 
         val mockupClassDeclarations = resolver.findAnnotatedClasses()
+        val mockupTypeAliases = resolver.findMockupTypeAliases(
+            mockupClassDeclarations = mockupClassDeclarations,
+        )
         val customProviders = resolver.findCustomMockupProviders()
 
         if (Debugger.isDebugEnabled) {
@@ -150,6 +154,7 @@ class MockupProcessor constructor(
 
         visitor = MockupVisitor(
             environment = environment,
+            resolver = resolver,
             outputTypeList = mockupTypesList,
             allClassesDeclarations = mockupClassDeclarations,
         )
@@ -160,25 +165,28 @@ class MockupProcessor constructor(
                 data = Unit,
             )
         }
+        mockupTypeAliases.forEach { typeAlias ->
+            visitor.visitTypeAlias(typeAlias = typeAlias)
+        }
 
         val providers = generateMockupDataProviders(
             mockupClasses = mockupTypesList.filterIsInstance<MockupType.MockUpped>(),
-            classesDeclarations = mockupClassDeclarations,
+            sourceDeclarations = mockupClassDeclarations + mockupTypeAliases,
         )
 
         if (providers.isNotEmpty()) {
             generateMockupRegistry(
                 providers = customProviders,
-                dependenciesSources = mockupClassDeclarations + customProviders,
+                dependenciesSources = mockupClassDeclarations + mockupTypeAliases + customProviders,
             )
         }
 
-        val targetPackage = mockupClassDeclarations.firstOrNull()?.packageName?.asString()
+        val targetPackage = providers.firstOrNull()?.providerClassPackage
 
         if (targetPackage != null && providers.isNotEmpty()) {
             MockupObjectExtensionGenerator(
                 outputStream = generateOutputFile(
-                    classes = mockupClassDeclarations,
+                    declarations = mockupClassDeclarations + mockupTypeAliases,
                     filename = "EXTENSIONS",
                     packageName = targetPackage,
                 ),
@@ -201,7 +209,7 @@ class MockupProcessor constructor(
      */
     private fun generateMockupRegistry(
         providers: List<KSClassDeclaration>,
-        dependenciesSources: List<KSClassDeclaration>,
+        dependenciesSources: List<KSDeclaration>,
     ) {
         val dependencies = Dependencies(
             aggregating = true,
@@ -293,33 +301,22 @@ class MockupProcessor constructor(
      * @since 1.0.0
      */
     private fun generateMockupDataProviders(
-        classesDeclarations: List<KSClassDeclaration>,
+        sourceDeclarations: List<KSDeclaration>,
         mockupClasses: List<MockupType.MockUpped>,
     ): ArrayList<MockupObjectMember> {
 
         val outputNamesList = ArrayList<MockupObjectMember>()
-        val size1 = classesDeclarations.size
-        val size2 = mockupClasses.size
-
-        require(
-            value = size1 == size2,
-            lazyMessage = {
-                "Declarations list and classes list having different sizes ($size1!=$size2). " +
-                        "This is probably some weird bug, report an issue please here " +
-                        "https://github.com/miroslavhybler/ksp-mockup/issues."
-            }
-        )
 
         mockupClasses.forEach { mockupClass ->
             val mockupDataGeneratedContent = mockupValuesCodeGenerator.generate(
                 mockupClass = mockupClass,
                 mockupClasses = mockupClasses,
             )
-            val packageName = mockupClass.declaration.packageName.asString()
+            val packageName = mockupClass.providerPackageName
 
             val dataProviderClazzName = dataProvidersGenerator.generateContent(
                 outputStream = generateOutputFile(
-                    classes = classesDeclarations,
+                    declarations = sourceDeclarations,
                     filename = "${mockupClass.providerName}MockupProvider",
                     packageName = packageName,
                 ),
@@ -331,6 +328,7 @@ class MockupProcessor constructor(
             val member = MockupObjectMember(
                 providerClassName = dataProviderClazzName,
                 providerClassPackage = packageName,
+                isGetApiReplacementAvailable = !mockupClass.requiresGeneratedAccessor,
             )
             outputNamesList.add(element = member)
         }
@@ -348,6 +346,31 @@ class MockupProcessor constructor(
         annotationName = Mockup::class.qualifiedName.toString()
     ).filterIsInstance<KSClassDeclaration>().toList()
 
+    /**
+     * Finds typealiases whose resolved target points to one of the classes annotated with [Mockup].
+     * @return Typealias declarations that may produce concrete generated providers.
+     * @since 2.0.0
+     */
+    private fun Resolver.findMockupTypeAliases(
+        mockupClassDeclarations: List<KSClassDeclaration>,
+    ): List<KSTypeAlias> {
+        val mockupQualifiedNames = mockupClassDeclarations
+            .mapNotNull { declaration -> declaration.qualifiedName?.asString() }
+            .toSet()
+        if (mockupQualifiedNames.isEmpty()) {
+            return emptyList()
+        }
+
+        return getAllFiles()
+            .flatMap { file -> file.declarations }
+            .filterIsInstance<KSTypeAlias>()
+            .filter { typeAlias ->
+                val aliasedType = typeAlias.type.resolve()
+                aliasedType.declaration.qualifiedName?.asString() in mockupQualifiedNames
+            }
+            .toList()
+    }
+
 
     /**
      * Creates single file for code generation and returns it's opened [OutputStream]
@@ -358,7 +381,7 @@ class MockupProcessor constructor(
      */
     @Throws(FileAlreadyExistsException::class)
     private fun generateOutputFile(
-        classes: List<KSClassDeclaration>,
+        declarations: List<KSDeclaration>,
         filename: String,
         packageName: String,
         isAggregating: Boolean = true,
@@ -366,8 +389,8 @@ class MockupProcessor constructor(
         return environment.codeGenerator.createNewFile(
             dependencies = Dependencies(
                 aggregating = isAggregating,
-                sources = classes
-                    .mapNotNull(transform = KSClassDeclaration::containingFile)
+                sources = declarations
+                    .mapNotNull(transform = KSDeclaration::containingFile)
                     .toTypedArray()
             ),
             packageName = packageName,

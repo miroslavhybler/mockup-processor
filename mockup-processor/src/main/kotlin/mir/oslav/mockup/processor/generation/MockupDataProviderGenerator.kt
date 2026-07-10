@@ -1,6 +1,7 @@
 package mir.oslav.mockup.processor.generation
 
 import com.mockup.annotations.Mockup
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
@@ -42,9 +43,12 @@ class MockupDataProviderGenerator constructor(
         val name = clazz.providerName
         val providerClassName = "${name}MockupProvider"
         val providerType = ClassName(packageName, providerClassName)
-        val targetType = clazz.toClassName()
+        val targetType = clazz.toProviderTargetTypeName()
+        val rawTargetType = clazz.toClassName()
         val mockupDataProviderType = ClassName("com.mockup.core", "MockupDataProvider")
         val generatedRegistryType = ClassName("com.mockup", "GeneratedMockupRegistry")
+        val kClassType = ClassName("kotlin.reflect", "KClass").parameterizedBy(targetType)
+        val requiresClazzCast = clazz.requiresGeneratedAccessor
 
         val mockupDataProviderOfTarget = mockupDataProviderType.parameterizedBy(targetType)
         val providerBuilder = TypeSpec.classBuilder(providerType)
@@ -63,7 +67,22 @@ class MockupDataProviderGenerator constructor(
                     .build()
             )
             .superclass(mockupDataProviderOfTarget)
-            .addSuperclassConstructorParameter("clazz = %T::class", targetType)
+            .apply {
+                if (requiresClazzCast) {
+                    addAnnotation(
+                        AnnotationSpec.builder(Suppress::class)
+                            .addMember("%S", "UNCHECKED_CAST")
+                            .build()
+                    )
+                    addSuperclassConstructorParameter(
+                        "clazz = %T::class as %T",
+                        rawTargetType,
+                        kClassType,
+                    )
+                } else {
+                    addSuperclassConstructorParameter("clazz = %T::class", targetType)
+                }
+            }
             .addSuperclassConstructorParameter(
                 "values = %L",
                 createValuesCodeBlock(

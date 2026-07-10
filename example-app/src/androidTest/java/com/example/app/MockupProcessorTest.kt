@@ -4,8 +4,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mockup.core.Mockup
 import com.mockup.exampledata.Article
 import com.mockup.exampledata.Category
+import com.mockup.exampledata.ListOfUsersResponse
 import com.mockup.exampledata.Publisher
 import com.mockup.exampledata.Reader
+import com.mockup.exampledata.UsersScreenState
+import com.mockup.exampledata.listOfUsersResponseMockupProvider
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -91,5 +94,24 @@ class MockupProcessorTest {
         val readerItem = Mockup.get<Reader.Item>()
         assertNotNull(readerItem)
         assertTrue(readerItem.name.isNotEmpty())
+    }
+
+    @Test
+    fun testGenericTypeAliasProvider() {
+        val response: ListOfUsersResponse = Mockup.listOfUsersResponseMockupProvider.first
+
+        assertNotNull(response)
+        assertTrue(response.data.isNotEmpty())
+        assertTrue(response.data.all { user -> user.name.isNotEmpty() })
+    }
+
+    @Test
+    fun testConcreteGenericProperty() {
+        val state = Mockup.get<UsersScreenState>()
+
+        assertNotNull(state)
+        assertNotNull(state.users)
+        assertTrue(state.users.data.isNotEmpty())
+        assertTrue(state.users.data.all { user -> user.name.isNotEmpty() })
     }
 }

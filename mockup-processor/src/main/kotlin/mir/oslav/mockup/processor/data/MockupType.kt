@@ -6,6 +6,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.mockup.annotations.Mockup
 
 
@@ -155,13 +156,24 @@ sealed class MockupType<out D : KSDeclaration> private constructor(
         override val declaration: KSClassDeclaration,
         val parentDeclarations: List<KSDeclaration>,
         val data: MockupAnnotationData,
-        val properties: List<ResolvedProperty>
+        val properties: List<ResolvedProperty>,
+        val typeAlias: KSTypeAlias? = null,
+        val providerPackageName: String = typeAlias?.packageName?.asString()
+            ?: declaration.packageName.asString(),
     ) : MockupType<KSClassDeclaration>(
         name = name,
         providerName = providerName,
         type = type,
         declaration = declaration
     ) {
+        /**
+         * True when the generated provider targets a concrete generic type or typealias that cannot
+         * be discovered through the erased `Mockup.get<T>()` reflection lookup.
+         * @since 2.0.0
+         */
+        val requiresGeneratedAccessor: Boolean
+            get() = typeAlias != null || type.arguments.isNotEmpty()
+
         val qualifiedName: String
             get() {
                 var name = declaration.simpleName.getShortName()

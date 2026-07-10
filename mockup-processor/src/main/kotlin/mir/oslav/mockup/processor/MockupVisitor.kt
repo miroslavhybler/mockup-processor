@@ -5,14 +5,18 @@ import androidx.annotation.IntDef
 import androidx.annotation.IntRange
 import androidx.annotation.StringDef
 import com.google.devtools.ksp.getDeclaredProperties
+import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.KSTypeAlias
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.KSVisitorVoid
+import com.google.devtools.ksp.symbol.Variance
 import com.mockup.annotations.IgnoreOnMockup
 import com.mockup.annotations.Mockup
 import mir.oslav.mockup.processor.data.MockupAnnotationData
@@ -40,9 +44,18 @@ import mir.oslav.mockup.processor.generation.isString
  */
 class MockupVisitor constructor(
     private val environment: SymbolProcessorEnvironment,
+    private val resolver: Resolver,
     private val outputTypeList: ArrayList<MockupType<*>>,
     private val allClassesDeclarations: List<KSClassDeclaration>
 ) : KSVisitorVoid() {
+
+    /**
+     * Type-parameter bindings that are currently known while resolving a generic mockup template.
+     * @since 2.0.0
+     */
+    private data class TypeContext constructor(
+        val bindings: Map<KSDeclaration, KSType> = emptyMap(),
+    )
 
     /**
      * Stack of declarations currently being resolved. It is used to stop circular mockup graphs
@@ -60,11 +73,22 @@ class MockupVisitor constructor(
         classDeclaration: KSClassDeclaration,
         data: Unit,
     ) {
+        if (classDeclaration.typeParameters.isNotEmpty()) {
+            environment.logger.warn(
+                "@Mockup class ${classDeclaration.qualifiedName?.asString()} has generic type " +
+                        "parameters and will be used as a mockup template only. Create a concrete " +
+                        "property type or typealias to generate data for it.",
+                classDeclaration,
+            )
+            return
+        }
+
         val resolvedProperties: ArrayList<ResolvedProperty> = ArrayList()
 
         visitClassImpl(
             classDeclaration = classDeclaration,
-            outputList = resolvedProperties
+            outputList = resolvedProperties,
+            typeContext = TypeContext(),
         )
 
         val annotationData = visitMockupAnnotation(classDeclaration = classDeclaration)
@@ -85,6 +109,57 @@ class MockupVisitor constructor(
         outputTypeList.add(element = mockupClass)
     }
 
+    /**
+     * Visits a concrete typealias whose expanded type points to a class annotated with [Mockup].
+     * @since 2.0.0
+     */
+    fun visitTypeAlias(
+        typeAlias: KSTypeAlias,
+    ) {
+        val aliasedType = typeAlias.type.resolve()
+        val classDeclaration = aliasedType.declaration as? KSClassDeclaration ?: return
+        val mockupClassDeclaration = allClassesDeclarations.find { mockupClass ->
+            mockupClass.qualifiedName == classDeclaration.qualifiedName
+        } ?: return
+
+        if (aliasedType.hasUnsupportedGenericArgument()) {
+            environment.logger.warn(
+                "Skipping typealias ${typeAlias.qualifiedName?.asString()} because its target " +
+                        "type contains star projections or unresolved generic parameters. " +
+                        "Only concrete @Mockup typealiases are supported.",
+                typeAlias,
+            )
+            return
+        }
+
+        val resolvedProperties: ArrayList<ResolvedProperty> = ArrayList()
+        val typeContext = createTypeContext(
+            classDeclaration = mockupClassDeclaration,
+            concreteType = aliasedType,
+            parentContext = TypeContext(),
+        )
+
+        visitClassImpl(
+            classDeclaration = mockupClassDeclaration,
+            outputList = resolvedProperties,
+            typeContext = typeContext,
+        )
+
+        val aliasName = typeAlias.name.getShortName()
+        val mockupClass = MockupType.MockUpped(
+            name = aliasName,
+            providerName = aliasName,
+            properties = resolvedProperties,
+            type = aliasedType,
+            data = visitMockupAnnotation(classDeclaration = mockupClassDeclaration),
+            declaration = mockupClassDeclaration,
+            parentDeclarations = getAllParents(classDeclaration = mockupClassDeclaration),
+            typeAlias = typeAlias,
+        )
+
+        outputTypeList.add(element = mockupClass)
+    }
+
 
     /**
      * Visits class annotated with [Mockup] and resolves it's properties. Properties will be inserted
@@ -96,6 +171,7 @@ class MockupVisitor constructor(
     private fun visitClassImpl(
         classDeclaration: KSClassDeclaration,
         outputList: ArrayList<ResolvedProperty>,
+        typeContext: TypeContext,
     ) {
         ensureNoCircularDependency(classDeclaration = classDeclaration)
         classResolutionStack.addLast(classDeclaration)
@@ -104,6 +180,7 @@ class MockupVisitor constructor(
             visitClassProperties(
                 classDeclaration = classDeclaration,
                 outputList = outputList,
+                typeContext = typeContext,
             )
         } finally {
             classResolutionStack.removeLast()
@@ -118,12 +195,16 @@ class MockupVisitor constructor(
     private fun visitClassProperties(
         classDeclaration: KSClassDeclaration,
         outputList: ArrayList<ResolvedProperty>,
+        typeContext: TypeContext,
     ) {
         val primaryConstructor = classDeclaration.primaryConstructor
 
         classDeclaration.getDeclaredProperties().forEach { property ->
             val name = property.simpleName.getShortName()
-            val type = property.type.resolve()
+            val type = substituteType(
+                type = property.type.resolve(),
+                typeContext = typeContext,
+            )
             val declaration = type.declaration
             val annotations = property.annotations
 
@@ -142,7 +223,10 @@ class MockupVisitor constructor(
             val propertyName = property.simpleName
             val primaryConstructorParameter = primaryConstructor?.parameters
                 ?.find(predicate = { parameter ->
-                    val parameterType = parameter.type.resolve()
+                    val parameterType = substituteType(
+                        type = parameter.type.resolve(),
+                        typeContext = typeContext,
+                    )
                     val parameterQualifiedName = parameterType.declaration.qualifiedName
                     val constructorPropertyName = parameter.name
                     parameterQualifiedName == typeQualifiedName && propertyName == constructorPropertyName
@@ -156,6 +240,7 @@ class MockupVisitor constructor(
                 property = property,
                 name = name,
                 primaryConstructorDeclaration = primaryConstructorParameter,
+                typeContext = typeContext,
             )
 
             val resolvedProperty = ResolvedProperty(
@@ -264,57 +349,76 @@ class MockupVisitor constructor(
         name: String,
         property: KSPropertyDeclaration,
         primaryConstructorDeclaration: KSValueParameter?,
+        typeContext: TypeContext,
     ): MockupType<*> {
-        val declaration = type.declaration
+        val resolvedType = substituteType(
+            type = type,
+            typeContext = typeContext,
+        )
+        require(value = !resolvedType.hasUnsupportedGenericArgument()) {
+            createUnsupportedGenericTypeMessage(
+                type = resolvedType,
+                property = property,
+            )
+        }
+
+        val declaration = resolvedType.declaration
         return when {
-            type.isSimpleType -> {
+            resolvedType.isSimpleType -> {
                 val source = provideSourceForSimpleType(
-                    type = type,
+                    type = resolvedType,
                     propertyDeclaration = property,
                     primaryConstructorDeclaration = primaryConstructorDeclaration,
                 )
                 MockupType.Simple(
                     name = name,
-                    type = type,
+                    type = resolvedType,
                     declaration = declaration,
                     property = property,
                     source = source,
                 )
             }
 
-            type.isEnumType -> {
+            resolvedType.isEnumType -> {
                 val providerName = createProviderName(declaration as KSClassDeclaration)
                 MockupType.Enum(
                     name = name,
                     providerName = providerName,
-                    type = type,
+                    type = resolvedType,
                     declaration = declaration,
-                    enumEntries = getEnumConstants(enumType = type)
+                    enumEntries = getEnumConstants(enumType = resolvedType)
                 )
             }
 
-            type.isGenericCollectionType -> {
-                val itemType = property.type.element?.typeArguments?.lastOrNull()?.type?.resolve()
-                    ?: throw NullPointerException("")
+            resolvedType.isGenericCollectionType -> {
+                val itemType = resolvedType.arguments.lastOrNull()?.type?.resolve()
+                    ?: throw IllegalArgumentException(
+                        "Unable to resolve generic collection element for property " +
+                                "${property.simpleName.asString()}. Star projections are not supported."
+                    )
 
                 MockupType.Collection(
                     name = name,
-                    type = type,
+                    type = resolvedType,
                     declaration = declaration as KSClassDeclaration,
                     elementType = resolveMockupType(
                         type = itemType,
-                        name = declaration.simpleName.getShortName(),
+                        name = itemType.declaration.simpleName.getShortName(),
                         property = property,
                         primaryConstructorDeclaration = primaryConstructorDeclaration,
+                        typeContext = typeContext,
                     ),
                 )
             }
 
-            type.isFixedArrayType -> {
-                MockupType.FixedTypeArray(name = name, type = type, declaration = declaration)
+            resolvedType.isFixedArrayType -> {
+                MockupType.FixedTypeArray(name = name, type = resolvedType, declaration = declaration)
             }
 
-            else -> findMockupClass(type = type)
+            else -> findMockupClass(
+                type = resolvedType,
+                typeContext = typeContext,
+            )
 
         }
     }
@@ -325,18 +429,24 @@ class MockupVisitor constructor(
      * @since 1.0.0
      */
     private fun findMockupClass(
-        type: KSType
+        type: KSType,
+        typeContext: TypeContext,
     ): MockupType.MockUpped {
+        val resolvedType = substituteType(
+            type = type,
+            typeContext = typeContext,
+        )
         val classDeclaration = allClassesDeclarations
             .find(predicate = { mockupClass ->
-                mockupClass.qualifiedName == type.declaration.qualifiedName
+                mockupClass.qualifiedName == resolvedType.declaration.qualifiedName
             })
 
         require(
             value = classDeclaration != null,
             lazyMessage = {
-                val typeName = type.declaration.simpleName.getShortName()
-                val qualifiedName = type.declaration.qualifiedName!!.asString()
+                val typeName = resolvedType.declaration.simpleName.getShortName()
+                val qualifiedName = resolvedType.declaration.qualifiedName?.asString()
+                    ?: resolvedType.declaration.simpleName.asString()
                 "Unable to resolve type ${qualifiedName}. This can have two causes:\n" +
                         "Cause 1: Class $typeName is not supported. List of supported types can be found here https://github.com/miroslavhybler/ksp-mockup/#supported-types\n" +
                         "Cause 2: Class $typeName is not annotated with @Mockup annotation.\n" +
@@ -345,10 +455,16 @@ class MockupVisitor constructor(
         )
 
         val outputPropertiesList: ArrayList<ResolvedProperty> = ArrayList()
+        val nestedTypeContext = createTypeContext(
+            classDeclaration = classDeclaration,
+            concreteType = resolvedType,
+            parentContext = typeContext,
+        )
 
         visitClassImpl(
             classDeclaration = classDeclaration,
             outputList = outputPropertiesList,
+            typeContext = nestedTypeContext,
         )
         val providerName = createProviderName(classDeclaration)
         val parents = getAllParents(classDeclaration)
@@ -359,9 +475,131 @@ class MockupVisitor constructor(
             declaration = classDeclaration,
             parentDeclarations = parents,
             data = visitMockupAnnotation(classDeclaration = classDeclaration),
-            type = type,
+            type = resolvedType,
             properties = outputPropertiesList
         )
+    }
+
+    /**
+     * Creates a child context by binding [classDeclaration]'s type parameters to [concreteType]'s
+     * arguments.
+     * @since 2.0.0
+     */
+    private fun createTypeContext(
+        classDeclaration: KSClassDeclaration,
+        concreteType: KSType,
+        parentContext: TypeContext,
+    ): TypeContext {
+        if (classDeclaration.typeParameters.isEmpty()) {
+            return parentContext
+        }
+
+        require(value = concreteType.arguments.size == classDeclaration.typeParameters.size) {
+            "Unable to resolve generic mockup type ${classDeclaration.qualifiedName?.asString()}. " +
+                    "Generic @Mockup classes require concrete type arguments from a property or typealias."
+        }
+
+        val bindings = parentContext.bindings.toMutableMap()
+        classDeclaration.typeParameters.zip(concreteType.arguments).forEach { (parameter, argument) ->
+            require(value = argument.variance != Variance.STAR && argument.type != null) {
+                "Unable to resolve generic mockup type ${classDeclaration.qualifiedName?.asString()}. " +
+                        "Star projections are not supported."
+            }
+
+            val argumentType = substituteType(
+                type = argument.type!!.resolve(),
+                typeContext = parentContext,
+            )
+
+            require(value = !argumentType.hasUnsupportedGenericArgument()) {
+                "Unable to resolve generic type parameter ${parameter.name.asString()} in " +
+                        "${classDeclaration.qualifiedName?.asString()}. Generic @Mockup classes " +
+                        "require concrete type arguments from a property or typealias."
+            }
+
+            bindings[parameter] = argumentType
+        }
+
+        return TypeContext(bindings = bindings)
+    }
+
+    /**
+     * Replaces type-parameter occurrences in [type] using the current [typeContext].
+     * @since 2.0.0
+     */
+    private fun substituteType(
+        type: KSType,
+        typeContext: TypeContext,
+    ): KSType {
+        val replacement = typeContext.bindings[type.declaration]
+        if (replacement != null) {
+            return if (type.isMarkedNullable) replacement.makeNullable() else replacement
+        }
+        if (type.arguments.isEmpty()) {
+            return type
+        }
+
+        val substitutedArguments = type.arguments.map { argument ->
+            if (argument.variance == Variance.STAR || argument.type == null) {
+                argument
+            } else {
+                val substitutedType = substituteType(
+                    type = argument.type!!.resolve(),
+                    typeContext = typeContext,
+                )
+                resolver.getTypeArgument(
+                    typeRef = resolver.createKSTypeReferenceFromKSType(substitutedType),
+                    variance = argument.variance,
+                )
+            }
+        }
+
+        return type.replace(arguments = substitutedArguments)
+    }
+
+    /**
+     * True when this type still contains a type parameter or star projection after substitution.
+     * @since 2.0.0
+     */
+    private fun KSType.hasUnsupportedGenericArgument(): Boolean {
+        return unsupportedGenericDescription() != null
+    }
+
+    /**
+     * Describes the first unsupported generic argument found in this type.
+     * @since 2.0.0
+     */
+    private fun KSType.unsupportedGenericDescription(): String? {
+        val typeParameter = declaration as? KSTypeParameter
+        if (typeParameter != null) {
+            return "type parameter ${typeParameter.name.asString()}"
+        }
+
+        arguments.forEach { argument ->
+            if (argument.variance == Variance.STAR || argument.type == null) {
+                return "star projection"
+            }
+
+            argument.type?.resolve()?.unsupportedGenericDescription()?.let { description ->
+                return description
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Builds a readable processor failure for unsupported generic properties.
+     * @since 2.0.0
+     */
+    private fun createUnsupportedGenericTypeMessage(
+        type: KSType,
+        property: KSPropertyDeclaration,
+    ): String {
+        val unsupportedGeneric = type.unsupportedGenericDescription() ?: "generic type"
+        return "Unable to resolve $unsupportedGeneric for property " +
+                "${property.simpleName.asString()}. Generic @Mockup classes require concrete " +
+                "type arguments from a property or typealias."
     }
 
 

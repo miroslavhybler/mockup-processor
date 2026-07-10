@@ -84,14 +84,23 @@ class MockupObjectExtensionGenerator constructor(
         val providerType = toProviderClassName()
         val mockupType = ClassName("com.mockup.core", "Mockup")
 
-        return PropertySpec.builder(providerClassName.decapitalized(), providerType, KModifier.PUBLIC)
+        val propertyBuilder = PropertySpec.builder(
+            providerClassName.decapitalized(),
+            providerType,
+            KModifier.PUBLIC,
+        )
             .receiver(mockupType)
-            .addAnnotation(createDeprecationAnnotation())
             .getter(
                 FunSpec.getterBuilder()
                     .addStatement("return %L", backingPropertyName)
                     .build()
             )
+
+        if (isGetApiReplacementAvailable) {
+            propertyBuilder.addAnnotation(createDeprecationAnnotation())
+        }
+
+        return propertyBuilder
             .build()
     }
 

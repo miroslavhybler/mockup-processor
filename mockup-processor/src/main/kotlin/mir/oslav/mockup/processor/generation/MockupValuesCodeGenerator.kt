@@ -38,7 +38,7 @@ class MockupValuesCodeGenerator constructor(
         mockupClasses: List<MockupType.MockUpped>,
     ): CodeBlock {
         return CodeBlock.builder()
-            .add("sequenceOf(\n")
+            .add("sequenceOf<%T>(\n", mockupClass.toProviderTargetTypeName())
             .indent()
             .apply {
                 repeat(times = mockupClass.data.count) {
@@ -196,32 +196,17 @@ class MockupValuesCodeGenerator constructor(
         type: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
     ): CodeBlock {
-        val declaration = type.type.declaration
-        val memberClassName = declaration.simpleName.getShortName()
-        val memberClassPackageName = declaration.packageName.asString()
-
-        val memberClass = mockupClasses.find { mockupClass ->
-            mockupClass.declaration == declaration &&
-                    mockupClass.packageName == memberClassPackageName
-        } ?: throw NullPointerException(
-            "Cannot generate mockup data for class ${memberClassName}. This can have two causes:\n" +
-                    "Cause 1: Class $memberClassName is not supported. List of supported types can be found here https://github.com/miroslavhybler/ksp-mockup/#supported-types\n" +
-                    "Cause 2: Class $memberClassName is not annotated with @Mockup annotation.\n" +
-                    "If you want to exclude it, use @IgnoreOnMockup annotation on the parameter.\n" +
-                    "If neither of these one has happened, please report an issue here https://github.com/miroslavhybler/ksp-mockup/issues.\n\n"
-        )
-
         return CodeBlock.builder()
             .add(
                 "%L",
                 generateItemPrimaryConstructorCall(
-                    mockupClass = memberClass,
+                    mockupClass = type,
                     mockupClasses = mockupClasses,
                 )
             )
             .apply {
                 generateItemApplyCall(
-                    mockupClass = memberClass,
+                    mockupClass = type,
                     mockupClasses = mockupClasses,
                 )?.let { applyCode ->
                     add("%L", applyCode)
@@ -237,7 +222,7 @@ class MockupValuesCodeGenerator constructor(
         mockupClass: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
     ): CodeBlock {
-        val typeName = mockupClass.toClassName()
+        val typeName = mockupClass.toConstructorTypeName()
         val constructorProperties = mockupClass.properties
             .filter(predicate = ResolvedProperty::isInPrimaryConstructorProperty)
 
