@@ -63,13 +63,15 @@ class MockupValuesCodeGenerator constructor(
         property: ResolvedProperty,
         mockupClasses: List<MockupType.MockUpped>,
     ): CodeBlock {
-        recognizers.forEach { recognizer ->
-            val recognizedValueCode = recognizer.tryRecognizeAndGenerateCodeBlock(
-                property = property,
-                containingClassName = property.containingClassName,
-            )
-            if (recognizedValueCode != null) {
-                return recognizedValueCode
+        if (property.resolvedType is MockupType.Simple) {
+            recognizers.forEach { recognizer ->
+                val recognizedValueCode = recognizer.tryRecognizeAndGenerateCodeBlock(
+                    property = property,
+                    containingClassName = property.containingClassName,
+                )
+                if (recognizedValueCode != null) {
+                    return recognizedValueCode
+                }
             }
         }
 

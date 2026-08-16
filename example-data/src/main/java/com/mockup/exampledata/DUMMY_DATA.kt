@@ -171,9 +171,6 @@ data class ListApiResponse<T> constructor(
 
 typealias ListOfUsersResponse = ListApiResponse<UserInfo>
 
-typealias UnkownTypeHolder = ListApiResponse<Unit>
-
-
 @Mockup
 data class UsersScreenState constructor(
     val users: ListApiResponse<UserInfo>,

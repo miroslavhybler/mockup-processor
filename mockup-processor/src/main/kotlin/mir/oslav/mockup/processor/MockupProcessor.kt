@@ -12,11 +12,14 @@ import com.google.devtools.ksp.symbol.KSTypeAlias
 import com.mockup.annotations.Mockup
 import mir.oslav.mockup.processor.data.InputOptions
 import mir.oslav.mockup.processor.data.MockupObjectMember
+import mir.oslav.mockup.processor.data.MockupProviderHintData
 import mir.oslav.mockup.processor.data.MockupType
 import mir.oslav.mockup.processor.generation.MockupDataProviderGenerator
 import mir.oslav.mockup.processor.generation.MockupObjectExtensionGenerator
 import mir.oslav.mockup.processor.generation.MockupRegistryGenerator
 import mir.oslav.mockup.processor.generation.MockupValuesCodeGenerator
+import mir.oslav.mockup.processor.generation.decapitalized
+import mir.oslav.mockup.processor.generation.toProviderTargetTypeName
 import mir.oslav.mockup.processor.recognition.DateTimeRecognizer
 import java.io.OutputStream
 
@@ -177,6 +180,7 @@ class MockupProcessor constructor(
         if (providers.isNotEmpty()) {
             generateMockupRegistry(
                 providers = customProviders,
+                providerHints = providers.mapNotNull { provider -> provider.providerHint },
                 dependenciesSources = mockupClassDeclarations + mockupTypeAliases + customProviders,
             )
         }
@@ -204,11 +208,13 @@ class MockupProcessor constructor(
     /**
      * Generates the registry that registers all discovered custom providers.
      * @param providers Custom provider declarations found in processed sources.
+     * @param providerHints Generated provider hints for erased generic/typealias diagnostics.
      * @param dependenciesSources Source declarations that should invalidate the generated registry.
      * @since 2.0.0
      */
     private fun generateMockupRegistry(
         providers: List<KSClassDeclaration>,
+        providerHints: List<MockupProviderHintData>,
         dependenciesSources: List<KSDeclaration>,
     ) {
         val dependencies = Dependencies(
@@ -225,7 +231,10 @@ class MockupProcessor constructor(
                     fileName = "GeneratedMockupRegistry",
                     dependencies = dependencies,
                 )
-            ).generate(providers = providers)
+            ).generate(
+                providers = providers,
+                providerHints = providerHints,
+            )
         } catch (exception: FileAlreadyExistsException) {
             exception.printStackTrace()
         }
@@ -329,11 +338,40 @@ class MockupProcessor constructor(
                 providerClassName = dataProviderClazzName,
                 providerClassPackage = packageName,
                 isGetApiReplacementAvailable = !mockupClass.requiresGeneratedAccessor,
+                providerHint = mockupClass.createProviderHint(
+                    providerClassName = dataProviderClazzName,
+                    providerClassPackage = packageName,
+                ),
             )
             outputNamesList.add(element = member)
         }
 
         return outputNamesList
+    }
+
+    /**
+     * Creates runtime diagnostic metadata for generated providers that cannot be discovered through
+     * `Mockup.get<T>()` because the JVM only sees the erased raw class.
+     */
+    private fun MockupType.MockUpped.createProviderHint(
+        providerClassName: String,
+        providerClassPackage: String,
+    ): MockupProviderHintData? {
+        if (!requiresGeneratedAccessor) {
+            return null
+        }
+
+        val rawClassName = declaration.qualifiedName?.asString() ?: return null
+        val targetTypeName = typeAlias?.qualifiedName?.asString()
+            ?: toProviderTargetTypeName().toString()
+
+        return MockupProviderHintData(
+            rawClassName = rawClassName,
+            targetTypeName = targetTypeName,
+            providerClassName = providerClassName,
+            providerClassPackage = providerClassPackage,
+            accessorName = providerClassName.decapitalized(),
+        )
     }
 
 

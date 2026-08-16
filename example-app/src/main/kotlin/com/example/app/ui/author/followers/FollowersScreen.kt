@@ -37,19 +37,27 @@ fun FollowersScreen(
 
     FollowersScreenContent(
         navHostController = navHostController,
-        followers = Mockup.fromJson(
+        followers = Mockup.fromJsonList<Reader>(
             json = """
 [
 {
 "userName": {
 "surname": "John",
 "birthname": "Doe"
+},
+"item": {
+"id": 1,
+"name": "Kotlin Weekly"
 }
 },
 {
 "userName": {
 "surname": "Jane",
 "birthname": "Doe"
+},
+"item": {
+"id": 2,
+"name": "Compose Digest"
 }
 }
 ]
@@ -107,19 +115,27 @@ private fun FollowersScreenContent(
 private fun FollowersScreenPreview() {
     FollowersScreenContent(
         navHostController = rememberNavController(),
-        followers = Mockup.fromJson(
+        followers = Mockup.fromJsonList<Reader>(
             json = """
 [
 {
 "userName": {
 "surname": "John",
 "birthname": "Doe"
+},
+"item": {
+"id": 1,
+"name": "Kotlin Weekly"
 }
 },
 {
 "userName": {
 "surname": "Jane",
 "birthname": "Doe"
+},
+"item": {
+"id": 2,
+"name": "Compose Digest"
 }
 }
 ]
