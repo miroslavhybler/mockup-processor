@@ -87,15 +87,50 @@ class MockupValuesCodeGeneratorTest {
         assertTrue(generatedCode.contains("com.test.Attachment("))
     }
 
+    @Test
+    fun nullableMockedClassPropertyUsesNonNullableConstructorCall() {
+        val orderClass = mockupClass(
+            qualifiedName = "com.test.Order",
+            properties = emptyList(),
+            isNullable = true,
+        )
+        val orderType = kSType(
+            qualifiedName = "com.test.Order",
+            declaration = orderClass.declaration,
+            isNullable = true,
+        )
+        val property = resolvedProperty(
+            name = "order",
+            type = orderType,
+            resolvedType = orderClass,
+        )
+        val mockupClass = mockupClass(
+            qualifiedName = "com.test.Response",
+            properties = listOf(property),
+        )
+
+        val generatedCode = MockupValuesCodeGenerator()
+            .generate(mockupClass = mockupClass, mockupClasses = listOf(mockupClass, orderClass))
+            .toString()
+
+        assertTrue(generatedCode.contains("order = com.test.Order(),"))
+        assertFalse(generatedCode.contains("com.test.Order?("))
+    }
+
     private fun mockupClass(
         qualifiedName: String,
         properties: List<ResolvedProperty>,
+        isNullable: Boolean = false,
     ): MockupType.MockUpped {
         val declaration = kSClassDeclaration(qualifiedName = qualifiedName)
         return MockupType.MockUpped(
             name = qualifiedName.substringAfterLast('.'),
             providerName = qualifiedName.substringAfterLast('.'),
-            type = kSType(qualifiedName = qualifiedName, declaration = declaration),
+            type = kSType(
+                qualifiedName = qualifiedName,
+                declaration = declaration,
+                isNullable = isNullable,
+            ),
             declaration = declaration,
             parentDeclarations = emptyList(),
             data = MockupAnnotationData(
@@ -142,20 +177,37 @@ class MockupValuesCodeGeneratorTest {
     private fun kSType(
         qualifiedName: String,
         declaration: KSClassDeclaration = kSClassDeclaration(qualifiedName = qualifiedName),
+        isNullable: Boolean = false,
     ): KSType {
         lateinit var type: KSType
         type = proxy { method, _ ->
             when (method.name) {
                 "getDeclaration" -> declaration
-                "getNullability" -> Nullability.NOT_NULL
+                "getNullability" -> if (isNullable) Nullability.NULLABLE else Nullability.NOT_NULL
                 "getArguments" -> emptyList<Any>()
                 "getAnnotations" -> emptySequence<KSAnnotation>()
-                "isMarkedNullable" -> false
+                "isMarkedNullable" -> isNullable
                 "isError" -> false
                 "isFunctionType" -> false
                 "isSuspendFunctionType" -> false
-                "makeNullable" -> type
-                "makeNotNullable" -> type
+                "makeNullable" -> if (isNullable) {
+                    type
+                } else {
+                    kSType(
+                        qualifiedName = qualifiedName,
+                        declaration = declaration,
+                        isNullable = true,
+                    )
+                }
+                "makeNotNullable" -> if (isNullable) {
+                    kSType(
+                        qualifiedName = qualifiedName,
+                        declaration = declaration,
+                        isNullable = false,
+                    )
+                } else {
+                    type
+                }
                 "starProjection" -> type
                 "replace" -> type
                 else -> unhandled(method = method)

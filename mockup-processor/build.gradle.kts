@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.github.miroslavhybler.mockup-processor"
-version = "2.0.0-beta03"
+version = "2.0.0"
 
 kotlin {
     jvmToolchain(jdkVersion = 11)
@@ -25,7 +25,7 @@ java {
 }
 
 dependencies {
-    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-beta03")
+    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0")
     implementation(libs.ksp.api)
     implementation(libs.kotlinpoet)
     implementation(libs.annotation)
@@ -84,7 +84,7 @@ afterEvaluate {
                 from(components.getByName("kotlin"))
                 groupId = "com.github.miroslavhybler"
                 artifactId = "mockup-processor"
-                version = "2.0.0-beta03"
+                version = "2.0.0"
                 pom {
                     description.set("Jitpack.io deploy")
                 }

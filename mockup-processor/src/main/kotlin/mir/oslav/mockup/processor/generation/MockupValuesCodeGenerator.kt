@@ -224,7 +224,7 @@ class MockupValuesCodeGenerator constructor(
         mockupClass: MockupType.MockUpped,
         mockupClasses: List<MockupType.MockUpped>,
     ): CodeBlock {
-        val typeName = mockupClass.toConstructorTypeName()
+        val typeName = mockupClass.toConstructorTypeName().copy(nullable = false)
         val constructorProperties = mockupClass.properties
             .filter(predicate = ResolvedProperty::isInPrimaryConstructorProperty)
 
