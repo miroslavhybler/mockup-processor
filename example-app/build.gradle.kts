@@ -63,15 +63,20 @@ android {
 
 dependencies {
 
+    val mockupVersion = "2.0.0"
+
     //Dummy data classes in another module for testing as mockup should be fine with multi-module project
     implementation(project(":example-data"))
 
     /** Mockup */
-    //Always keep same version for mockup dependencies
-    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-beta03")
-    implementation("com.github.miroslavhybler:mockup-core:2.0.0-beta03")
-
-    //use kspDebug since mockup is meant to be only for compose preview in debug mode
+    // Compile shared preview sources without packaging Mockup in release builds.
+    compileOnly("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    compileOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+    // Preview rendering and debug execution still need the core implementation at runtime.
+    debugRuntimeOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+    // This sample's instrumentation tests call Mockup directly.
+    androidTestImplementation("com.github.miroslavhybler:mockup-core:$mockupVersion")
+    // Generate providers only for debug; release builds never run the Mockup processor.
     kspDebug(project(":mockup-processor"))
     //Needed because this sample opts into generated PreviewParameterProvider implementations
     implementation(libs.compose.ui.tooling.preview)

@@ -11,8 +11,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.app.ui.GlobalNavHost
-import com.example.app.ui.custom.PromoCard
-import com.mockup.core.Mockup
 
 
 /**
@@ -38,9 +36,4 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        val list= Mockup.getList<PromoCard>()
-        val a = list.first()
-    }
 }

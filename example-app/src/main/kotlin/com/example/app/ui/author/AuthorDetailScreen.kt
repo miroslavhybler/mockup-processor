@@ -39,10 +39,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.data.ShowcaseDataSource
 import com.mockup.core.Mockup
 import com.mockup.exampledata.Article
 import com.mockup.exampledata.AuthorRank
@@ -50,9 +50,6 @@ import com.example.app.ExampleTheme
 import com.mockup.exampledata.Publisher
 import com.example.app.ui.DetailAppBar
 import com.example.app.ui.Photo
-import com.mockup.exampledata.PublisherMockupProvider
-import com.mockup.exampledata.articleMockupProvider
-import com.mockup.exampledata.publisherMockupProvider
 
 import kotlinx.coroutines.launch
 
@@ -67,9 +64,9 @@ fun AuthorDetailScreen(
 ) {
 
     AuthorDetailScreenContent(
-        author = remember { Mockup.publisherMockupProvider.list.find { it.id == authorId }!! },
+        author = remember { ShowcaseDataSource.publishers.first { it.id == authorId } },
         navHostController = navHostController,
-        articles = remember { Mockup.articleMockupProvider.list.take(n = 5) }
+        articles = remember { ShowcaseDataSource.articles.take(n = 5) }
     )
 
 }

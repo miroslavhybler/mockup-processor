@@ -4,6 +4,7 @@ import com.mockup.core.CustomMockupProvider
 import com.mockup.core.Mockup
 import kotlin.reflect.KClass
 
+/** Hand-written mock data is discovered by the debug-only KSP run. */
 object PromoCardCustomProvider : CustomMockupProvider<PromoCard> {
     override val clazz: KClass<PromoCard> = PromoCard::class
     override val values: List<PromoCard> = Mockup.fromJsonList(

@@ -44,12 +44,15 @@ kotlin {
 
 dependencies {
 
+    val mockupVersion = "2.0.0"
+
     /** Mockup */
-    //Always keep same version for mockup dependencies
-    implementation("com.github.miroslavhybler:mockup-annotations:2.0.0-beta03")
-    implementation("com.github.miroslavhybler:mockup-core:2.0.0-beta03")
-    //use kspDebug since mockup is meant to be only for compose preview in debug mode
-    ksp(project(":mockup-processor"))
+    // Models stay annotatable from src/main without leaking Mockup into release runtime metadata.
+    compileOnly("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    compileOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+    debugRuntimeOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+    // Every module that owns @Mockup models must scope KSP to debug.
+    kspDebug(project(":mockup-processor"))
 
 
     implementation(libs.core.ktx)

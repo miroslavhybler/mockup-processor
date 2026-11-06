@@ -20,8 +20,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.mockup.core.Mockup
 import com.example.app.R
+import com.example.app.data.ShowcaseDataSource
+import com.mockup.core.Mockup
 import com.mockup.exampledata.Reader
 
 
@@ -37,32 +38,7 @@ fun FollowersScreen(
 
     FollowersScreenContent(
         navHostController = navHostController,
-        followers = Mockup.fromJsonList<Reader>(
-            json = """
-[
-{
-"userName": {
-"surname": "John",
-"birthname": "Doe"
-},
-"item": {
-"id": 1,
-"name": "Kotlin Weekly"
-}
-},
-{
-"userName": {
-"surname": "Jane",
-"birthname": "Doe"
-},
-"item": {
-"id": 2,
-"name": "Compose Digest"
-}
-}
-]
-        """.trimIndent()
-        )
+        followers = ShowcaseDataSource.followers,
     )
 }
 

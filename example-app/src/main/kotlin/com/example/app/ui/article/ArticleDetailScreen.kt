@@ -40,13 +40,12 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.data.ShowcaseDataSource
 import com.mockup.core.Mockup
 import com.mockup.exampledata.Article
 import com.example.app.ExampleTheme
 import com.example.app.ui.DetailAppBar
 import com.example.app.ui.Photo
-import com.mockup.exampledata.articleMockupProvider
-import com.mockup.exampledata.publisherMockupProvider
 import kotlinx.coroutines.launch
 
 
@@ -61,7 +60,7 @@ fun ArticleDetailScreen(
 ) {
 
     val article = remember {
-        Mockup.articleMockupProvider.list.find { article -> article.id == articleId }!!
+        ShowcaseDataSource.articles.first { article -> article.id == articleId }
     }
 
     ArticleDetailScreenContent(
@@ -157,7 +156,7 @@ private fun ArticleDetailScreenContent(
                                 //As described in the readme.md data are not aggregated, can't use
                                 //Author id from article because he is not in publisher list probably
                                 navHostController.navigate(
-                                    route = "author/${Mockup.publisherMockupProvider.list.random().id}"
+                                    route = "author/${ShowcaseDataSource.publishers.random().id}"
                                 )
                             }
                         )

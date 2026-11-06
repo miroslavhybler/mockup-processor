@@ -31,6 +31,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.data.ShowcaseDataSource
 import com.mockup.core.Mockup
 import com.mockup.exampledata.Article
 import com.example.app.ExampleTheme
@@ -39,6 +40,11 @@ import java.util.Locale
 
 
 /**
+ * Displays the articles supplied by the executable library showcase.
+ *
+ * The default [articles] come from [ShowcaseDataSource] only so this example can run without a
+ * backend. A real application should pass state produced by its normal data and domain layers.
+ *
  * @author Miroslav Hýbler <br>
  * created on 18.09.2023
  */
@@ -46,7 +52,7 @@ import java.util.Locale
 @Composable
 fun ArticlesScreen(
     navHostController: NavHostController,
-    articles: List<Article> = Mockup.getProvider<Article>().list,
+    articles: List<Article> = ShowcaseDataSource.articles,
 ) {
 
     Scaffold(

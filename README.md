@@ -39,13 +39,58 @@ ksp {
 }
 
 dependencies {
-    //Always use the same version for annotations and processor
-    val mockupVersion= "2.0.0-beta03"
-    implementation("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
-    ksp("com.github.miroslavhybler:mockup-processor:$mockupVersion")
+    // Always use the same version for all Mockup artifacts.
+    val mockupVersion = "2.0.0"
+
+    // @Mockup models and Mockup calls in src/main previews must compile in every variant,
+    // but neither artifact is packaged in release builds.
+    compileOnly("com.github.miroslavhybler:mockup-annotations:$mockupVersion")
+    compileOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+
+    // Android Studio previews and debug runtime code need the core implementation.
+    debugRuntimeOnly("com.github.miroslavhybler:mockup-core:$mockupVersion")
+
+    // Only when instrumentation tests call Mockup directly:
+    androidTestImplementation("com.github.miroslavhybler:mockup-core:$mockupVersion")
+
+    // Likewise, only when local JVM tests call Mockup directly:
+    testImplementation("com.github.miroslavhybler:mockup-core:$mockupVersion")
+
+    // Concrete providers and data are generated only for debug.
+    kspDebug("com.github.miroslavhybler:mockup-processor:$mockupVersion")
 }
 ```
+
+This is the recommended release-safe setup for 2.x. `Mockup` is a stable type from
+`mockup-core`, so preview functions in `src/main` can compile for release through `compileOnly`
+without running the processor or packaging the library. `debugRuntimeOnly` then makes the same
+type available when a preview is rendered or debug code is executed. Generated providers and
+their data exist only in the debug variant because the processor is attached with `kspDebug`.
+
+Apply this configuration to every module that owns `@Mockup` models. In a multi-module project,
+using `kspDebug` only in the application does not generate providers for models owned by a library
+module.
+
+Use the generic core API (`Mockup.get<T>()`, `Mockup.getList<T>()`, and similar methods) from
+shared `src/main` preview code. Concrete provider classes and legacy generated accessors such as
+`UserMockupProvider` or `Mockup.userMockupProvider` exist only in debug, so references to them must
+live under `src/debug` (or be replaced by the generic API). If a showcase or internal tool also uses
+mockups at debug runtime, isolate that integration in `src/debug`; ordinary preview-only apps do not
+need a runtime data-source wrapper or release fallback.
+
+If every `Mockup` call already lives under `src/debug`, `debugImplementation(mockup-core)` can be
+used instead of the `compileOnly` plus `debugRuntimeOnly` pair.
+
+### Executable example versus a real app
+
+Real applications do not need `ShowcaseDataSource` or release source-set fallbacks. Their screens
+should receive state from REST APIs, databases, repositories, use cases, or other production data
+sources, while `Mockup` remains confined to Compose preview functions.
+
+The executable `example-app` is deliberately different: it has no backend or domain layer but still
+needs populated screens to showcase the generated values. Its debug-only `ShowcaseDataSource` uses
+`Mockup` for that purpose. Release and benchmark implementations return empty lists, demonstrating
+that this showcase shortcut does not add generated data or `mockup-core` to production runtime.
 
 `mockup.usePreviewParameterProviders` defaults to `false`.
 When it is `false`, generated providers are plain `MockupDataProvider`s and the generating module does not need
@@ -70,7 +115,8 @@ data class User constructor(
 }
 ```
 
-Build your project and access generated data through generated Mockup object.
+Build the debug variant and access its generated providers through the `Mockup` object from
+`mockup-core`.
 
 ```kotlin
 //accessing same single user instance

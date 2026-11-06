@@ -28,23 +28,27 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.data.ShowcaseDataSource
 import com.mockup.core.Mockup
 import com.example.app.ExampleTheme
 import com.mockup.exampledata.Publisher
 import com.example.app.ui.Photo
-import com.mockup.exampledata.publisherMockupProvider
 
 
 /**
+ * Displays the publishers supplied by the executable library showcase.
+ *
+ * The default [publishers] come from [ShowcaseDataSource] only so this example can run without a
+ * backend. A real application should pass state produced by its normal data and domain layers.
+ *
  * @author Miroslav Hýbler <br>
  * created on 18.09.2023
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-//Mockup data can be used like that too, but it's not purpose
 fun AuthorsScreen(
     navHostController: NavHostController,
-    publishers: List<Publisher> = Mockup.publisherMockupProvider.list,
+    publishers: List<Publisher> = ShowcaseDataSource.publishers,
 ) {
 
     Scaffold(
